@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>Game</title>
+	{% load static %}
+	<link rel="stylesheet" href="{% static 'game.css' %}">
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+
+<body>
+	<h1>Game ID: {{game.id}}</h1>
+	<div class="info">
+		<h2>Player A</h2>
+		<h2>Player B</h2>
+	</div>
+	{% if game.userRole == "A" %}
+		<div class="info">
+			<p>{{user}}</p>
+			<p>{{game.agent}}</p>
+		</div>
+		<div class="info">
+			<p>moves: {{game.userMoves}}</p>
+			<p>moves: {{game.agentMoves}}</p>
+		</div>
+		<div class="info">
+			<p class='final'>final score: {{game.userScore}}</p>
+			<p class='final'>final score: {{game.agentScore}}</p>
+		</div>
+	{% else %}
+		<div class="info">
+			<p>{{game.agent}}</p>
+			<p>{{user}}</p>
+		</div>
+		<div class="info">
+			<p>moves: {{game.agentMoves}}</p>
+			<p>moves: {{game.userMoves}}</p>
+		</div>
+		<div class="info">
+			<p class='final'>final score: {{game.agentScore}}</p>
+			<p class='final'>final score: {{game.userScore}}</p>
+		</div>
+	{% endif %}
+	<div class='home-newgame'>
+		<a href="{% url 'home' %}">Home</a>
+		<a href="{% url 'newgame' %}">Play Again</a>
+	</div>
+</body>
+</html>

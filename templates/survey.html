@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}
+	<title>Survey</title>
+{% endblock %}
+
+{% block content %}
+	<h1 id="top">Survey</h1>
+	<p>Please complete the following survey. All responses are optional</p>
+	<form method="POST">
+		{% csrf_token %} 
+		{{form.as_p}}
+		<br>
+		<input type="submit" value ="Submit"/> 
+	</form>
+
+{% endblock %}

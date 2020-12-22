@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% load static %}
+<link rel="stylesheet" href="{% static 'home.css' %}">
+
+{% block title %}
+	<title>Home</title>
+{% endblock %}
+
+{% block content %}
+	<h1>Username: {{user.username}}</h1>
+	<h1>Games Played: {{myGames}}</h1>
+	<h2><a href="{% url 'logout' %}">Logout</a> </h2>
+	<h2><a href="{% url 'information' %}">Review Study Information</a> </h2>
+	<h2><a href="{% url 'consent_signed' %}">Review Consent Form</a> </h2>
+	<h2><a href="{% url 'survey' %}">Survey</a> </h2>
+	<h2><a href="{% url 'newgame' %}">Start Game</a> </h2>
+{% endblock %}

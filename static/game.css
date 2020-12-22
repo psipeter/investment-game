@@ -1,0 +1,36 @@
+h1 {
+	font-size: 24px;
+	text-align: center;
+}
+
+div.info {
+	display: flex;
+	justify-content: space-between;
+}
+
+div.center {
+	color: blue;
+	display: flex;
+	justify-content: space-between;
+}
+
+p.user {
+	color: blue;
+	font-size: 48px
+}
+
+p.agent {
+	color: red;
+	font-size: 48px
+}
+
+.final {
+	color: red;
+	font-weight: bold;
+}
+
+.home-newgame {
+	font-size: 24px;	
+	display: flex;
+	justify-content: space-around;	
+}

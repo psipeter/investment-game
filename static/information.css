@@ -1,0 +1,44 @@
+html {
+	font-size: 10px;
+	font-family: 'Oswald', sans-serif; /*comment*/
+	background-color: #C7D3E0;
+}
+
+body {
+	width: : 600px;
+	margin: 0 auto;
+	padding: 0 20px 20px 20px;
+	border: 1px solid black;
+}
+
+h1 {
+	margin: 0;
+	padding: 20px 0;
+	color: #00539F;
+	font-size: 32px;
+	text-align: center;
+	text-shadow: 1px 1px 1px black;
+}
+
+img {
+	display: block;
+	margin: 0 auto;
+}
+
+p, li {
+	font-size: 16px;
+	line-height: 2;
+	letter-spacing: 1px;
+}
+
+p.red {
+	text-align: center;
+	color: red;
+}
+
+p.question {
+	font-size: 24px;
+	text-align: center;
+
+}
+
