@@ -14,7 +14,10 @@ from .agents import *
 from .utils import *
 from .plotter import *
 
-def spawnAgent(name, env):
+def spawnAgent(name, env, learnVsHumans=False):
+	epsilon = 0.01 if learnVsHumans else 0
+	temp = 10 if learnVsHumans else 0
+	decay = 0.95 if learnVsHumans else 0
 	if name == 'Greedy':
 		return Gaussian(mean=0.0, std=0.1, ID="Greedy")
 	if name == 'Generous':
@@ -24,15 +27,14 @@ def spawnAgent(name, env):
 	if name == 'TitForTat':
 		return TitForTat(env)
 	if name == "FMQ":
-		return FMQ(env, temp=0, decay=0)
+		return FMQ(env, temp=temp, decay=temp, epsilon=epsilon, learnVsHumans=learnVsHumans)
 	if name == "WoLFPHC":
-		return WoLFPHC(env, temp=0, decay=0)
+		return WoLFPHC(env, temp=temp, decay=decay, epsilon=epsilon, learnVsHumans=learnVsHumans)
 	if name == "PGAAPP":
-		return PGAAPP(env)
+		return PGAAPP(env, temp=temp, decay=decay, epsilon=epsilon, learnVsHumans=learnVsHumans)
 	if name == "ModelBased":
-		return ModelBased(env)
+		return ModelBased(env, decay=decay, epsilon=epsilon, learnVsHumans=learnVsHumans)
 	raise "No Agent Selected"
-
 
 class Game(models.Model):
 	id = models.UUIDField(primary_key=True, default=uuid.uuid4, help_text="Unique game ID")
@@ -53,15 +55,17 @@ class Game(models.Model):
 	agentScore = models.IntegerField(default=0)
 	env = Env(nIter=5, capital=10, matchFactor=3)
 	# agentPool = ["Greedy", "Generous", "Accumulator", "TitForTat"]
-	agentPool = ["Accumulator"]
-	agentModel = spawnAgent(random.choice(agentPool), env)
+	agentPool = ["TitForTat"]
+	learnVsHumans = True
+	agentModel = spawnAgent(random.choice(agentPool), env, learnVsHumans)
 
 	def init(self, request):
 		self.user = request.user
 		self.agent = self.agentModel.ID
-		self.agentModel.loadModel()  # load learned parameters for learning agents
+		# load learned parameters for learning agents
+		self.agentModel.loadModel()
 		self.agentModel.reset()
-		if np.random.rand() > 0.5:
+		if np.random.rand() > 0.0:  # CHANGE
 			self.userRole = "A"
 			self.agentRole = "B"
 			self.agentModel.setPlayer("B")
@@ -90,7 +94,11 @@ class Game(models.Model):
 			self.agentScore += int(matched-reply)
 			self.agentMove = reply
 			self.agentMoves += "%s,"%reply
-			self.agentModel.update()
+			if self.learnVsHumans:
+				self.agentModel.rewards.append(matched-reply)
+				self.agentModel.update()
+			else:
+				self.agentModel.update()
 		else:
 			invest = int(self.agentMove)
 			matched = self.env.matchFactor*invest
@@ -99,13 +107,19 @@ class Game(models.Model):
 			self.userScore += int(matched-reply)
 			if not self.complete:
 				self.agentModel.otherActions.append(reply)
-				self.agentModel.update()
+				if self.learnVsHumans:
+					self.agentModel.rewards.append(self.env.capital-invest+reply)
+					self.agentModel.update()
+				else:
+					self.agentModel.update()
 				newinvest = self.agentModel.action(self.env.capital)
 				self.agentModel.myActions.append(newinvest)
 				self.agentMove = newinvest
 				self.agentMoves += "%s,"%newinvest
-			else:
-				self.agentModel.reset()
+		if self.complete:
+			self.agentModel.reset()
+			if self.learnVsHumans:
+				self.agentModel.saveModel()
 		self.save()
 
 

@@ -181,7 +181,7 @@ class TitForTat(Agent):
 
 
 class FMQ(Agent):
-	def __init__(self, env, alpha=3e-2, temp=10, decay=0.95, epsilon=0.01, ID="FMQ"):
+	def __init__(self, env, alpha=3e-2, temp=10, decay=0.95, epsilon=0.01, learnVsHumans=False, ID="FMQ"):
 		super().__init__()
 		self.ID = ID
 		self.epsilon = epsilon
@@ -199,7 +199,7 @@ class FMQ(Agent):
 		self.decay = decay
 		self.temp = temp
 		self.alpha = alpha
-		self.learning = True
+		self.learnVsHumans = learnVsHumans
 
 	def action(self, money):
 		temp = self.temp * self.decay**self.iter
@@ -246,7 +246,9 @@ class FMQ(Agent):
 		self.cB = np.zeros((self.nActions))
 
 	def saveModel(self):
-		np.savez("data/FMQ.npz",
+		prefix = "game/" if self.learnVsHumans else ""
+		suffix = "_Human" if self.learnVsHumans else ""
+		np.savez("%sdata/FMQ%s.npz"%(prefix, suffix),
 			QA=self.QA,
 			rMaxA=self.rMaxA,
 			cMaxA=self.cMaxA,
@@ -257,7 +259,8 @@ class FMQ(Agent):
 			cB=self.cB)
 
 	def loadModel(self):
-		data = np.load("game/data/FMQ.npz")
+		suffix = "_Human" if self.learnVsHumans else ""
+		data = np.load("game/data/FMQ%s.npz"%suffix)
 		self.QA = data['QA']
 		self.rMaxA = data['rMaxA']
 		self.cMaxA = data['cMaxA']
@@ -266,12 +269,12 @@ class FMQ(Agent):
 		self.rMaxB = data['rMaxB']
 		self.cMaxB = data['cMaxB']
 		self.cB = data['cB']
-		self.learning = False
+		self.learning = True if self.learnVsHumans else False
 
 
 class WoLFPHC(Agent):
 	def __init__(self, env, alpha=3e-2, deltaW=2e-1, deltaL=1e-1, firstMove="Generous",
-			temp=10, decay=0.95, gamma=0.99, epsilon=0.01, ID="WoLF-PHC"):
+			temp=10, decay=0.95, gamma=0.99, epsilon=0.01, learnVsHumans=False, ID="WoLF-PHC"):
 		super().__init__()
 		self.ID = ID
 		self.epsilon = epsilon
@@ -290,6 +293,7 @@ class WoLFPHC(Agent):
 		self.deltaL = deltaL
 		self.alpha = alpha
 		self.firstMove = firstMove
+		self.learnVsHumans = learnVsHumans
 
 	def action(self, money):
 		temp = self.temp * self.decay**self.iter
@@ -357,24 +361,27 @@ class WoLFPHC(Agent):
 		self.piBar = np.ones((self.nActions, self.nStates)) / self.nActions
 
 	def saveModel(self):
-		np.savez("data/WoLFPHC.npz",
+		prefix = "game/" if self.learnVsHumans else ""
+		suffix = "_Human" if self.learnVsHumans else ""
+		np.savez("%sdata/WoLFPHC%s.npz"%(prefix, suffix),
 			Q=self.Q,
 			nAS=self.nAS,
 			pi=self.pi,
 			piBar=self.piBar)
 
 	def loadModel(self):
-		data = np.load("game/data/WoLFPHC.npz")
+		suffix = "_Human" if self.learnVsHumans else ""
+		data = np.load("game/data/WoLFPHC%s.npz"%suffix)
 		self.Q = data['Q']
 		self.nAS = data['nAS']
 		self.pi = data['pi']
 		self.piBar = data['piBar']
-		self.learning = False
+		self.learning = True if self.learnVsHumans else False
 
 
 class PGAAPP(Agent):
 	def __init__(self, env, alpha=3e-2, nu=1e-2, gamma=0.95, xi=0.95, firstMove="Generous",
-			temp=10, decay=0.9, epsilon=0.01, ID="PGA-APP"):
+			temp=10, decay=0.9, epsilon=0.01, learnVsHumans=False, ID="PGA-APP"):
 		super().__init__()
 		self.ID = ID
 		self.epsilon = epsilon
@@ -393,9 +400,10 @@ class PGAAPP(Agent):
 		self.gamma = gamma  # xi in original paper
 		self.temp = temp
 		self.firstMove = firstMove
+		self.learnVsHumans = learnVsHumans
 
 	def action(self, money):
-		temp = self.decay * self.decay**self.iter
+		temp = self.temp * self.decay**self.iter
 		if np.random.rand() < self.epsilon:
 			action = np.random.randint(0, money) if money > 0 else 0
 		elif len(self.otherActions) < 1:
@@ -452,23 +460,27 @@ class PGAAPP(Agent):
 		self.V = np.zeros((self.nStates))
 
 	def saveModel(self):
-		np.savez("data/PGAAPP.npz",
+		prefix = "game/" if self.learnVsHumans else ""
+		suffix = "_Human" if self.learnVsHumans else ""
+		np.savez("%sdata/PGAAPP%s.npz"%(prefix, suffix),
 			Q=self.Q,
 			pi=self.pi,
 			delta=self.delta,
 			V=self.V)
 
 	def loadModel(self):
-		data = np.load('game/data/PGAAPP.npz')
+		suffix = "_Human" if self.learnVsHumans else ""
+		data = np.load("game/data/PGAAPP%s.npz"%suffix)
 		self.Q = data['Q']
 		self.pi = data['pi']
 		self.delta = data['delta']
 		self.V = data['V']
-		self.learning = False
+		self.learning = True if self.learnVsHumans else False
 
 
 class ModelBased(Agent):
-	def __init__(self, env, updateFreq=10, decay=0.95, gamma=0.99, epsilon=0.01,firstMove="Generous", ID="Model-Based"):
+	def __init__(self, env, updateFreq=10, decay=0.95, gamma=0.99, epsilon=0.01,
+			learnVsHumans=False, firstMove="Generous", ID="Model-Based"):
 		super().__init__()
 		self.ID = ID
 		self.capital = env.capital 
@@ -487,6 +499,7 @@ class ModelBased(Agent):
 		self.epsilon = epsilon
 		self.updateFreq = updateFreq
 		self.firstMove = firstMove
+		self.learnVsHumans = learnVsHumans
 
 	def action(self, money):
 		epsilon = self.epsilon + self.decay**self.iter
@@ -547,7 +560,9 @@ class ModelBased(Agent):
 		self.pi = np.zeros((self.nStates), dtype=int)
 
 	def saveModel(self):
-		np.savez("data/ModelBased.npz",
+		prefix = "game/" if self.learnVsHumans else ""
+		suffix = "_Human" if self.learnVsHumans else ""
+		np.savez("%sdata/ModelBased%s.npz"%(prefix, suffix),
 			R=self.R,
 			T=self.T,
 			V=self.V,
@@ -555,10 +570,11 @@ class ModelBased(Agent):
 			pi=self.pi)
 
 	def loadModel(self):
-		data = np.load("game/data/ModelBased.npz")
+		suffix = "_Human" if self.learnVsHumans else ""
+		data = np.load("game/data/ModelBased%s.npz"%suffix)
 		self.R = data['R']
 		self.T = data['T']
 		self.V = data['V']
 		self.nASS = data['nASS']
 		self.pi = data['pi']
-		self.learning = False
+		self.learning = True if self.learnVsHumans else False

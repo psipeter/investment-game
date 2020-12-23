@@ -2,11 +2,19 @@ from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
+from django.forms.widgets import NumberInput
 from . import models
 
 class GameForm(forms.ModelForm):
-	userMove = forms.IntegerField(label="Your Move",
-		min_value=0, max_value=100)
+	userMove = forms.IntegerField(
+		label="",
+		widget=forms.NumberInput(
+			attrs={
+				'type':'range',
+				'step': '1',
+				'min': '0',
+				'max': '30',
+				'onchange': "updateSend(this.value);"}))
 	def clean_userMove(self):
 		move = self.cleaned_data['userMove']
 		low = 0

@@ -20,21 +20,21 @@
 			<p>{{user}}</p>
 			<p>{{game.agent}}</p>
 		</div>
-		<div class='center'>
-			<!-- <p class='user'>{{game.userMove}}</p> -->
-			<p class='user'>__</p>
-			<form method="POST">
-				{% csrf_token %} 
-				{{form.as_p}}
-				<input type="submit" value ="Send"/> 
-			</form>
-			<p class='agent'>
+		<div class='moves'>
+			<div class="user">
+				<form id="sendForm" method="POST">
+					{% csrf_token %} 
+					{{form.as_p}}
+				</form>
+			</div>
+			<div class="send">
+				<input class="send" type="submit" form="sendForm" value="Send"/>
+			</div>
+			<div class='agent'>
 				{% if game.agentMove is not None %}
-					{{game.agentMove}}
-				{% else %}
-					__
+					<p class="right">{{game.agentMove}}</p>
 				{% endif %}
-			</p>
+			</div>
 		</div>
 		<div class="info">
 			<p>moves: {{game.userMoves}}</p>
@@ -45,21 +45,21 @@
 			<p>{{game.agent}}</p>
 			<p>{{user}}</p>
 		</div>
-		<div class='center'>
-			<p class='agent'>
+		<div class='moves'>
+			<div class='agent'>
 				{% if game.agentMove is not None %}
-					{{game.agentMove}}
-				{% else %}
-					__
+					<p class="left">{{game.agentMove}}</p>
 				{% endif %}
-			</p>
-			<form method="POST">
-				{% csrf_token %} 
-				{{form.as_p}}
-				<input type="submit" value ="Send"/> 
-			</form>
-			<!-- <p class='user'>{{game.userMove}}</p> -->
-			<p class='user'>__</p>
+			</div>
+			<div class="send">
+				<input class="send" type="submit" form="sendForm" value="Send"/>
+			</div>
+			<div class="user">
+				<form id="sendForm" method="POST">
+					{% csrf_token %} 
+					{{form.as_p}}
+				</form>
+			</div>
 		</div>
 		<div class="info">
 			<p>moves: {{game.agentMoves}}</p>

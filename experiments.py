@@ -45,27 +45,22 @@ c4 = ModelBased(env)
 
 ''' tournament '''
 
-# env = Env(nIter=10, capital=10, matchFactor=3)
+env = Env(nIter=5, capital=10, matchFactor=3)
 
 pop = [
-	FMQ(env, alpha=3e-3, decay=0.98),
-	PGAAPP(env, alpha=3e-3, nu=1e-3, decay=0.98),
-	WoLFPHC(env, alpha=3e-3, deltaW=3, deltaL=1, decay=0.98),
-	ModelBased(env, decay=0.97),
-	ModelBased(env, decay=0.97),
+	FMQ(env, alpha=3e-3, decay=0.99),
+	PGAAPP(env, alpha=3e-3, nu=1e-3, decay=0.99),
+	WoLFPHC(env, alpha=3e-3, deltaW=3, deltaL=1, decay=0.99),
+	ModelBased(env, decay=0.99, updateFreq=1),
 	Accumulator(env, maxReturn=0.5),
-	TitForTat(env),
 	TitForTat(env),
 	Gaussian(mean=0.0, std=0.1, ID="Greedy"),
 	Gaussian(mean=1.0, std=0.1, ID="Generous"),
 ]
 
-# pop = [t1, t2, t3, t4, t5, t6, t7, t8]
-tournament(pop, env, nAvg=1, nRounds=50)
+tournament(pop, env, nAvg=3, nRounds=300)
 
+# pop[0].saveModel(learnVsHumans=True)
+# pop[1].saveModel(learnVsHumans=True)
+# pop[2].saveModel(learnVsHumans=True)
 
-''' replottiong '''
-
-# plotPerformance(a1, pop, env, learners=False, plotOther=True)
-# df = pd.read_pickle("data/tournament.pkl")
-# plotTournament(pop, df, env)
