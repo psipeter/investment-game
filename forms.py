@@ -3,31 +3,30 @@ from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
 from django.forms.widgets import NumberInput
+from django.core.validators import MaxValueValidator, MinValueValidator
 from . import models
 
 class GameForm(forms.ModelForm):
-	userMove = forms.IntegerField(
-		label="",
-		widget=forms.NumberInput(
-			attrs={
-				'type':'range',
-				'step': '1',
-				'min': '0',
-				'max': '30',
-				'onchange': "updateSend(this.value);"}))
-	def clean_userMove(self):
-		move = self.cleaned_data['userMove']
-		low = 0
-		if self.instance.userRole == "A":
-			high = self.instance.env.capital
-		else:
-			high = self.instance.env.matchFactor * self.instance.agentMove 
-		if move < low or move > high:
-			raise ValidationError('Must enter a number between %s and %s'%(low, high))
-		return move
+	def update(self, role=None):
+		userRole = role if role else self.instance.userRole
+		capital = self.instance.env.capital
+		matchFactor = self.instance.env.matchFactor
+		high = capital if userRole == "A" else matchFactor * capital 
+		self.fields['userMove'].validators.append(MinValueValidator(0))
+		self.fields['userMove'].validators.append(MaxValueValidator(high))
+		self.fields['userMove'].widget.attrs.update({"min": 0, "max": high})
+		self.fields['userMove'].initial = 0
 	class Meta:
 		model = models.Game
 		fields = ('userMove',)
+		labels = {"userMove": ""}
+		high = model.env.capital * model.env.matchFactor
+		widgets = {'userMove': forms.NumberInput(attrs={
+			'type':'range',
+			'step': 1,
+			'min': 0,
+			'max': high,
+			'onchange': "updateSend(this.value);"})}
 
 class UserForm(UserCreationForm):
 	username = forms.CharField(label="MTurk ID")

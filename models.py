@@ -65,7 +65,7 @@ class Game(models.Model):
 		# load learned parameters for learning agents
 		self.agentModel.loadModel()
 		self.agentModel.reset()
-		if np.random.rand() > 0.0:  # CHANGE
+		if np.random.rand() > 1.0:  # CHANGE
 			self.userRole = "A"
 			self.agentRole = "B"
 			self.agentModel.setPlayer("B")

@@ -59,14 +59,15 @@ def game(request, gameID):
 	game = get_object_or_404(Game, id=gameID)
 	if request.method == 'POST':
 		form = GameForm(request.POST, instance=game)
+		form.update()
 		if form.is_valid():
 			form.save()
 			game.step(form.cleaned_data['userMove'])
 			if game.complete:
 				context = {'game': game}
 				return render(request, "game_complete.html", context=context)
-	else:
-		form = GameForm()
+	form = GameForm()
+	form.update(role=game.userRole)
 	context = {'game': game, 'form': form}
 	return render(request, "game.html", context=context)
 

@@ -53,7 +53,7 @@ div.moves {
 	font-weight: bold;
 }
 
-input {
+#submitButton{
 	margin: 0;
 	border: solid black;
 	padding: 0;
@@ -63,22 +63,13 @@ input {
 	background-color: #52919c;
 }
 
-input[type="range"]{
+#djangoForm {
 	width: 100%;
 	padding: 0;
 	margin-top: 0;
-	/*margin-left: 40%;*/
+	margin-left: 40%;
 	/*margin-bottom: 40%;*/
-	/*transform: rotate(270deg);*/
-}
-
-input#displaySlider {
-	color: green;
-	font-size: 36px;
-	background-color: white;
-	border: solid black;
-	height: 30%;
-	width: 30%;
+	transform: rotate(270deg);
 }
 
 .home-newgame {
