@@ -51,8 +51,18 @@ def user(request, username):
 
 @login_required
 def startGame(request):
+	if request.user.currentGame:
+		return redirect('continue') # enforce one currentGame
 	game = Game()
 	game.start(request.user)
+	form = GameForm(instance=game)
+	context = {'game': game, 'form': form}
+	return render(request, "game.html", context=context)
+
+@login_required
+def continueGame(request):
+	game = request.user.currentGame
+	print(game)
 	form = GameForm(instance=game)
 	context = {'game': game, 'form': form}
 	return render(request, "game.html", context=context)
@@ -62,10 +72,18 @@ def updateGame(request):
 	userMove = request.POST.get('userMove')
 	game = request.user.currentGame
 	game.step(userMove)
+	if game.complete:
+		request.user.currentGame = None
+		request.user.save()
 	data = {
 		'userMove': game.userMove,
 		'userMoves': game.userMoves,
 		'agentMove': game.agentMove,
 		'agentMoves': game.agentMoves,
+		'complete': game.complete,
+		'userScore': game.userScore,
+		'agentScore': game.agentScore,
+		'userRole': game.userRole,
+		'agentRole': game.agentRole,
 	}
 	return JsonResponse(data)

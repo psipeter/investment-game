@@ -12,8 +12,8 @@
 <body>
 	<h1>Game ID: {{game.uuid}}</h1>
 	<div class="info">
-		<h2>Player A</h2>
-		<h2>Player B</h2>
+		<h2 id="playerA">Player A</h2>
+		<h2 id="playerB">Player B</h2>
 	</div>
 
 	{% if game.userRole == "A" %}
@@ -23,7 +23,13 @@
 		</div>
 		<div class='moves'>
 			<div class="user">
-				<p class="left" id="userMove"></p>
+				<p class="left" id="userMove">
+					{% if game.userMove is not None %}
+						{{game.userMove}}
+					{% endif %}
+				</p>
+			</div>
+			<div class="form">
 				<form
 					type="range"
 					id="djangoForm"
@@ -32,17 +38,19 @@
 						{% csrf_token %} 
 						{{form.as_p}}
 				</form>
-			</div>
-			<div class="send">
-				<input class="send" type="submit" id="submitButton" form="djangoForm" value="send 0">
+				<input type="submit" id="submitButton" form="djangoForm">
 			</div>
 			<div class='agent'>
-				<p class="right" id="agentMove"></p>
+				<p class="right" id="agentMove">
+					{% if game.agentMove is not None %}
+						{{game.agentMove}}
+					{% endif %}
+				</p>
 			</div>
 		</div>
 		<div class="info">
-			<p id="userMoves"></p>
-			<p id="agentMoves"></p>
+			<p id="userMoves">{{game.userMoves}}</p>
+			<p id="agentMoves">{{game.agentMoves}}</p>
 		</div>
 
 	{% else %}
@@ -73,38 +81,11 @@
 	{% endif %}
 
 	<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-	<!-- <script src="{% static 'game.js' %}"></script> -->
 	<script type="text/javascript">
-		// Update text of "send" button to reflect value of slider
-		$("#djangoForm").change(function moveSlider() {
-			$("#submitButton").val("send "+$("#id_userMove").val());
-		});
-
-		// Update models and DOM when "send" button is pressed
-		$("#submitButton").click(function callUpdate() {
-			"use strict";
-			console.log("ajax initiate");
-			let form = $("#djangoForm");
-			$.ajax({
-				method: 'POST',
-				url: form.attr("updateURL"),
-				data: form.serialize(),
-				dataType: 'json',
-				success: function (data) {
-					console.log("hello");
-					$("#userMove").text(data.userMove);
-					$("#agentMove").text(data.agentMove);
-					$("#userMoves").text(data.userMoves);
-					$("#agentMoves").text(data.agentMoves);
-					// $("#userMove").text(data.userMove);
-					// $("#agentMove").text(data.agentMoves);
-					// $("#userMoves").text(data.userMoves);
-					// $("#agentMoves").text(data.agentMoves);
-					// console.log("{{game.userMove}}");
-				}
-			});
-			return false;
-		});
+		//pass django variables to external javascript
+		let homeURL = "{% url 'home' %}";
+		let gameURL = "{% url 'game' %}";
 	</script>
+	<script src="{% static 'game.js' %}"></script>
 </body>
 </html>

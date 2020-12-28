@@ -8,9 +8,13 @@ from .models import Game, Agent, User
 class Game(admin.ModelAdmin):
 	list_display = ('uuid',
 		'user', 'userRole', 'userScore',
-		'agent', 'agentRole', 'agentScore',
+		'get_agent', 'agentRole', 'agentScore',
 		'date', 'userMoves', 'agentMoves')
 	ordering = ('-date',)
+	def get_agent(self, obj):
+		return obj.agent.agentType
+	get_agent.short_description = "Agent"
+	get_agent.admin_order_field = "agent__agentType"
 
 @admin.register(Agent)
 class Agent(admin.ModelAdmin):

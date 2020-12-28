@@ -14,5 +14,9 @@
 	<h2><a href="{% url 'information' %}">Review Study Information</a> </h2>
 	<h2><a href="{% url 'consent_signed' %}">Review Consent Form</a> </h2>
 	<h2><a href="{% url 'survey' %}">Survey</a> </h2>
-	<h2><a href="{% url 'game' %}">Start Game</a> </h2>
+	{% if user.currentGame %}
+		<h2><a href="{% url 'continue' %}">Continue Game</a> </h2>
+	{% else %}
+		<h2><a href="{% url 'game' %}">Start Game</a> </h2>
+	{% endif %}
 {% endblock %}

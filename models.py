@@ -92,6 +92,8 @@ class Game(models.Model):
 		else:
 			self.agentMove = move
 			self.agentMoves += "%s,"%move
+		self.save()
+
 
 	def getMoves(self, string):
 		return np.array(string.split(',')[:-1]).astype(np.int)
@@ -104,17 +106,22 @@ class Game(models.Model):
 		self.RL.myActions = self.getMoves(self.agentMoves)
 		self.RL.otherActions = self.getMoves(self.userMoves)
 		if self.RL.player == "A":
-			self.RL.rewards = self.capital-self.RL.myActions+self.matchFactor*self.RL.otherActions
+			received = self.capital-self.RL.myActions
+			gave = self.matchFactor*self.RL.otherActions
 		else:
-			self.RL.rewards = self.matchFactor*self.RL.otherActions-self.RL.myActions
+			received = self.matchFactor*self.RL.otherActions[:-1]
+			gave = self.RL.myActions
+		self.RL.rewards = received - gave
 		self.RL.update()
 		return int(self.RL.action(money))
 
 	def getComplete(self):
 		userMoves = np.array(self.userMoves.split(',')[:-1]).astype(np.int)
 		agentMoves = np.array(self.agentMoves.split(',')[:-1]).astype(np.int)
-		if len(self.userMoves) >= self.nIter and len(self.agentMoves) >= self.nIter:
+		if len(userMoves) == self.nIter and len(agentMoves) == self.nIter:
 			self.complete = True
+		if len(userMoves) > self.nIter or len(agentMoves) > self.nIter:
+			raise Exception("Too many moves taken")
 		return self.complete
 
 	def start(self, user):
@@ -139,7 +146,6 @@ class Game(models.Model):
 
 	def step(self, userMove):
 		self.setMoves("user", userMove)
-		self.getComplete()
 		if self.userRole == "A":
 			invest = int(self.userMove)
 			matched = self.matchFactor*invest
@@ -163,6 +169,7 @@ class Game(models.Model):
 		# 	self.agent.model.reset()
 		# 	if self.agent.learning:
 		# 		self.agent.model.save(prefix="game/")
+		self.getComplete()
 		self.save()
 
 	class Meta:
