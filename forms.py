@@ -1,5 +1,4 @@
 from django import forms
-from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
 from django.forms.widgets import NumberInput
@@ -7,11 +6,14 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from . import models
 
 class GameForm(forms.ModelForm):
-	def update(self, role=None):
-		userRole = role if role else self.instance.userRole
-		capital = self.instance.env.capital
-		matchFactor = self.instance.env.matchFactor
-		high = capital if userRole == "A" else matchFactor * capital 
+	def __init__(self, *args, **kwargs):   
+		super(GameForm, self ).__init__(*args, **kwargs)
+		capital = self.instance.capital
+		matchFactor = self.instance.matchFactor
+		if self.instance.userRole == "A":
+			high = capital
+		else:
+			high = matchFactor * capital 
 		self.fields['userMove'].validators.append(MinValueValidator(0))
 		self.fields['userMove'].validators.append(MaxValueValidator(high))
 		self.fields['userMove'].widget.attrs.update({"min": 0, "max": high})
@@ -20,13 +22,13 @@ class GameForm(forms.ModelForm):
 		model = models.Game
 		fields = ('userMove',)
 		labels = {"userMove": ""}
-		high = model.env.capital * model.env.matchFactor
+		high = 30  # todo
 		widgets = {'userMove': forms.NumberInput(attrs={
 			'type':'range',
 			'step': 1,
+			'initial': 0,
 			'min': 0,
-			'max': high,
-			'onchange': "updateSend(this.value);"})}
+			'max': high})}
 
 class UserForm(UserCreationForm):
 	username = forms.CharField(label="MTurk ID")
@@ -34,7 +36,7 @@ class UserForm(UserCreationForm):
 	password2 = forms.CharField(label='Confirm password', widget=forms.PasswordInput)
 	# todo: validation
 	class Meta:
-		model = User
+		model = models.User
 		fields = ('username', 'password1', 'password2')
 		labels = {'username': 'MTurk ID', 'password1': "Enter Password", 'password2': 'Confirm Password'}
 		help_texts = {'username': None, 'password1': None, 'password2': None}
@@ -82,5 +84,5 @@ class ProfileForm(forms.ModelForm):
 	altruism = forms.IntegerField(min_value=1, max_value=10, help_text=altruismHelpText)
 
 	class Meta:
-		model = models.Profile
+		model = models.User
 		fields = ('age', 'gender', 'income', 'education', 'veteran', 'empathy', 'risk', 'altruism')

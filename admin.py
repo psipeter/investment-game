@@ -1,32 +1,21 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from django.contrib.auth.models import User
-from .models import Game
+# from django.contrib.auth.models import User
+from .models import Game, Agent, User
 
 # admin.site.register(Game)
 @admin.register(Game)
 class Game(admin.ModelAdmin):
-	list_display = ('id',
+	list_display = ('uuid',
 		'user', 'userRole', 'userScore',
 		'agent', 'agentRole', 'agentScore',
 		'date', 'userMoves', 'agentMoves')
 	ordering = ('-date',)
 
-def age(obj):
-	return str(obj.profile.age)
-def gender(obj):
-	return str(obj.profile.gender)
-def income(obj):
-	return str(obj.profile.income)
-def education(obj):
-	return str(obj.profile.education)
-def veteran(obj):
-	return str(obj.profile.veteran)
-def empathy(obj):
-	return str(obj.profile.empathy)
-def risk(obj):
-	return str(obj.profile.risk)
-def altruism(obj):
-	return str(obj.profile.altruism)
+@admin.register(Agent)
+class Agent(admin.ModelAdmin):
+	list_display = ('agentType','uuid')
 
-UserAdmin.list_display = ('username', age, gender, income, education, veteran, empathy, risk, altruism)
+@admin.register(User)
+class User(UserAdmin):
+	list_display = ('username', 'currentGame', 'age', 'gender', 'income', 'education', 'veteran', 'empathy', 'risk', 'altruism')

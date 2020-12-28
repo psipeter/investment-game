@@ -156,7 +156,7 @@ def tournament(pop, env, nAvg, nRounds):
 				agent1.reset()
 				agent2.reset()
 		for agent in pop:
-			agent.saveModel()
+			agent.save()
 			agent.fullReset()
 	df = pd.concat([df for df in dfs], ignore_index=True)
 	df.to_pickle("data/tournament.pkl")

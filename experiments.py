@@ -38,8 +38,8 @@ c4 = ModelBased(env)
 # performance(a4, nonlearners, env, nAvg=3, nEps=100, learners=False, plotOther=True)
 # performance(a4, learners, env, nAvg=3, nEps=100, learners=True, plotOther=True)
 
-# a1.loadModel()
-# performance(a1, [b1, b2, b3, b4], env, nAvg=3, nEps=100, learners=False, plotOther=True)
+a2.load()
+performance(a2, [b1, b2, b3, b4], env, nAvg=3, nEps=100, learners=False, plotOther=True)
 
 
 
@@ -48,19 +48,20 @@ c4 = ModelBased(env)
 env = Env(nIter=5, capital=10, matchFactor=3)
 
 pop = [
-	FMQ(env, alpha=3e-3, decay=0.99),
+	# FMQ(env, alpha=3e-3, decay=0.99),
 	PGAAPP(env, alpha=3e-3, nu=1e-3, decay=0.99),
 	WoLFPHC(env, alpha=3e-3, deltaW=3, deltaL=1, decay=0.99),
 	ModelBased(env, decay=0.99, updateFreq=1),
-	Accumulator(env, maxReturn=0.5),
+	Accumulator(env),
+	Accumulator(env, maxReturn=0.4, alpha=3e-1),
 	TitForTat(env),
-	Gaussian(mean=0.0, std=0.1, ID="Greedy"),
-	Gaussian(mean=1.0, std=0.1, ID="Generous"),
+	TitForTat(env, strategy="Gain"),
+	# Gaussian(mean=0.0, std=0.1, ID="Greedy"),
+	# Gaussian(mean=1.0, std=0.1, ID="Generous"),
 ]
 
-tournament(pop, env, nAvg=3, nRounds=300)
+# tournament(pop, env, nAvg=1, nRounds=10)
 
 # pop[0].saveModel(learnVsHumans=True)
 # pop[1].saveModel(learnVsHumans=True)
 # pop[2].saveModel(learnVsHumans=True)
-
