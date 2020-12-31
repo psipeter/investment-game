@@ -50,6 +50,15 @@ class AgentBase():
 	def load(self, prefix=""):
 		pass
 
+	def setData(self, data):
+		self.setPlayer(data['player'])
+		self.myActions = data['myActions']
+		self.otherActions = data['otherActions']
+		self.rewards = data['rewards']
+
+	def getData(self):
+		return dict()
+
 
 ''' NON-LEARNERS '''
 
@@ -70,35 +79,6 @@ class Gaussian(AgentBase):
 		return action
 
 
-
-class Dynamic(AgentBase):
-	def __init__(self, func, ID, epsilon=0.01):
-		super().__init__()
-		self.ID = ID
-		self.func = func
-		self.iter = 0
-		self.state = self.func(self.iter)
-		self.epsilon = epsilon
-
-	def action(self, money):
-		if np.random.rand() < self.epsilon:
-			action = np.random.randint(0, money) if money > 0 else 0
-		else:
-			action = np.clip(np.int(money*self.state), 0, money)
-		return action
-
-	def update(self):
-		self.iter += 1
-		self.state = self.func(self.iter)
-
-	def reset(self):
-		super().reset()
-		self.iter = 0
-		self.state = self.func(self.iter)
-
-
-
-
 class Accumulator(AgentBase):
 	def __init__(self, env, maxReturn=0.5, alpha=2e-1, epsilon=0.01, ID="Accumulator"):
 		super().__init__()
@@ -116,6 +96,8 @@ class Accumulator(AgentBase):
 		return action
 
 	def update(self):
+		if len(self.otherActions) == 0:
+			return
 		if self.player == "A":
 			if self.otherActions[-1] > self.myActions[-1]:
 				judgement = 1
@@ -133,9 +115,20 @@ class Accumulator(AgentBase):
 			self.state += self.alpha * judgement
 			self.state = np.clip(self.state, 0, self.maxReturn)
 
-	def setPlayer(self, player):
+	def setPlayer(self, player, init=False):
 		self.player = player
-		self.state = 1 if self.player == "A" else 0.5
+		if init:
+			self.state = 1 if self.player == "A" else 0.5
+
+	# def setData(self, data, rlData):
+	# 	super().setData(data)
+	# 	self.state = rlData['state']
+
+	# def getData(self):
+	# 	rlDict = {
+	# 		'state': self.state,
+	# 	}
+	# 	return rlDict
 
 
 class TitForTat(AgentBase):
@@ -155,6 +148,8 @@ class TitForTat(AgentBase):
 		return action
 
 	def update(self):
+		if len(self.otherActions) == 0:
+			return
 		if self.player == "A":
 			if self.myActions[-1] == 0:
 				self.state = 0  # stay greedy (still epsilon-random actions)
@@ -171,9 +166,20 @@ class TitForTat(AgentBase):
 			self.state = self.otherActions[-1] / self.capital  # happy if investor gave 100% of capital
 			self.state = np.clip(self.state/2, 0, 0.5)
 
-	def setPlayer(self, player):
+	def setPlayer(self, player, init=False):
 		self.player = player
-		self.state = 1 if self.player == "A" else 0.5
+		if init:
+			self.state = 1 if self.player == "A" else 0.5
+
+	# def setData(self, data, rlData):
+	# 	super().setData(data)
+	# 	self.state = rlData['state']
+
+	# def getData(self):
+	# 	rlDict = {
+	# 		'state': self.state,
+	# 	}
+	# 	return rlDict
 
 
 ''' LEARNERS '''
@@ -213,7 +219,7 @@ class FMQ(AgentBase):
 		return np.clip(action, 0, money)
 
 	def update(self):
-		if len(self.otherActions) > 1 and self.learning:
+		if len(self.myActions) > 1 and self.learning:
 			Q = self.QA if self.player == "A" else self.QB
 			rMax = self.rMaxA if self.player == "A" else self.rMaxB
 			cMax = self.cMaxA if self.player == "A" else self.cMaxB
@@ -266,6 +272,31 @@ class FMQ(AgentBase):
 		self.cMaxB = data['cMaxB']
 		self.cB = data['cB']
 
+	# def setData(self, data, rlData):
+	# 	super().setData(data)
+	# 	self.QA = rlData['QA']
+	# 	self.rMaxA = rlData['rMaxA']
+	# 	self.cMaxA = rlData['cMaxA']
+	# 	self.cA = rlData['cA']
+	# 	self.QB = rlData['QB']
+	# 	self.rMaxB = rlData['rMaxB']
+	# 	self.cMaxB = rlData['cMaxB']
+	# 	self.cB = rlData['cB']
+
+	# def getData(self):
+	# 	rlDict = {
+	# 		'QA': self.QA,
+	# 		'rMaxA': self.rMaxA,
+	# 		'cMaxA': self.cMaxA,
+	# 		'cA': self.cA,
+	# 		'QB': self.QB,
+	# 		'rMaxB': self.rMaxB,
+	# 		'cMaxB': self.cMaxB,
+	# 		'cB': self.cB
+	# 	}
+	# 	return rlDict
+
+
 
 class WoLFPHC(AgentBase):
 	def __init__(self, env, alpha=3e-2, deltaW=2e-1, deltaL=1e-1, firstMove="Generous",
@@ -293,7 +324,7 @@ class WoLFPHC(AgentBase):
 		temp = self.temp * self.decay**self.iter
 		if np.random.rand() < self.epsilon:
 			action = np.random.randint(0, money) if money > 0 else 0
-		elif len(self.otherActions) < 1:
+		elif len(self.otherActions) < 1 or len(self.myActions) < 1:
 			if self.firstMove == "Generous":
 				action = money if self.player == "A" else int(money/2)
 			elif self.firstMove == "Random":
@@ -314,34 +345,33 @@ class WoLFPHC(AgentBase):
 		return m + k*self.myActions[idx] + l*self.otherActions[idx]
 
 	def update(self):
-		if len(self.otherActions) > 1:
+		if len(self.otherActions) > 2 and len(self.myActions) > 2 and self.learning:
 			# normal Q-update
 			state = self.getState(-2)
 			stateNew = self.getState(-1)
 			action = self.myActions[-1]
-			if self.learning:
-				reward = self.rewards[-1]
-				self.nAS[action, state] += 1
-				alpha = self.alpha / self.nAS[action, state]
-				self.Q[action, state] += alpha * (reward + self.gamma*np.max(self.Q[:, stateNew]) - self.Q[action, state])
-				# WoLF policy update
-				Cs = np.sum(self.nAS[:, state])
-				temp = self.temp * self.decay**self.iter
-				aGreedy = np.argmax(self.Q[:, state])
-				condition = np.sum(self.pi[:, state]*self.Q[:, state]) > np.sum(self.piBar[:, state]*self.Q[:, state])
-				delta = self.deltaW if condition else self.deltaL
-				for a in range(self.nActions):
-					self.piBar[a, state] += 1/Cs * (self.pi[a, state] - self.piBar[a, state])
-					if a != aGreedy:
-						deltaSA = np.min([self.pi[a, state], delta/(self.nActions-1)])
-						DeltaSA = -deltaSA
-					else:
-						DeltaSA = 0
-						for ap in range(self.nActions):
-							if ap == aGreedy: continue
-							deltaSA = np.min([self.pi[ap, state], delta/(self.nActions-1)])
-							DeltaSA += deltaSA
-					self.pi[a, state] += DeltaSA
+			reward = self.rewards[-1]
+			self.nAS[action, state] += 1
+			alpha = self.alpha / self.nAS[action, state]
+			self.Q[action, state] += alpha * (reward + self.gamma*np.max(self.Q[:, stateNew]) - self.Q[action, state])
+			# WoLF policy update
+			Cs = np.sum(self.nAS[:, state])
+			temp = self.temp * self.decay**self.iter
+			aGreedy = np.argmax(self.Q[:, state])
+			condition = np.sum(self.pi[:, state]*self.Q[:, state]) > np.sum(self.piBar[:, state]*self.Q[:, state])
+			delta = self.deltaW if condition else self.deltaL
+			for a in range(self.nActions):
+				self.piBar[a, state] += 1/Cs * (self.pi[a, state] - self.piBar[a, state])
+				if a != aGreedy:
+					deltaSA = np.min([self.pi[a, state], delta/(self.nActions-1)])
+					DeltaSA = -deltaSA
+				else:
+					DeltaSA = 0
+					for ap in range(self.nActions):
+						if ap == aGreedy: continue
+						deltaSA = np.min([self.pi[ap, state], delta/(self.nActions-1)])
+						DeltaSA += deltaSA
+				self.pi[a, state] += DeltaSA
 
 	def reset(self):
 		super().reset()
@@ -368,6 +398,21 @@ class WoLFPHC(AgentBase):
 		self.pi = data['pi']
 		self.piBar = data['piBar']
 
+	# def setData(self, data, rlData):
+	# 	super().setData(data)
+	# 	self.Q = rlData['Q']
+	# 	self.nAS = rlData['nAS']
+	# 	self.pi = rlData['pi']
+	# 	self.piBar = rlData['piBar']
+
+	# def getData(self):
+	# 	rlDict = {
+	# 		'Q': self.Q,
+	# 		'nAS': self.nAS,
+	# 		'pi': self.pi,
+	# 		'piBar': self.piBar,
+	# 	}
+	# 	return rlDict
 
 class PGAAPP(AgentBase):
 	def __init__(self, env, alpha=3e-2, nu=1e-2, gamma=0.95, xi=0.95, firstMove="Generous",
@@ -395,7 +440,7 @@ class PGAAPP(AgentBase):
 		temp = self.temp * self.decay**self.iter
 		if np.random.rand() < self.epsilon:
 			action = np.random.randint(0, money) if money > 0 else 0
-		elif len(self.otherActions) < 1:
+		elif len(self.otherActions) < 1 or len(self.myActions) < 1:
 			if self.firstMove == "Generous":
 				action = money if self.player == "A" else int(money/2)
 			elif self.firstMove == "Random":
@@ -417,25 +462,24 @@ class PGAAPP(AgentBase):
 		return m + k*self.myActions[idx] + l*self.otherActions[idx]
 
 	def update(self):
-		if len(self.otherActions) > 1:
+		if len(self.otherActions) > 2 and len(self.myActions) > 2 and self.learning:
 			state = self.getState(-2)
 			stateNew = self.getState(-1)
 			action = self.myActions[-1]
-			if self.learning:
-				reward = self.rewards[-1]
-				self.Q[action, state] += self.alpha*(reward - self.Q[action, state] + self.gamma*np.max(self.Q[:, stateNew]))
-				self.V[state] = np.sum(self.pi[:, state]*self.Q[:, state])
-				for a in range(self.nActions):
-					if (1-self.pi[a, state]) == 0:
-						self.delta[a, state] = (self.Q[a, state] - self.V[state])
-					else:
-						self.delta[a, state] = (self.Q[a, state] - self.V[state]) / (1-self.pi[a, state])
-					delta = self.delta[a, state] - self.xi * np.abs(self.delta[a, state]) * self.pi[a, state]
-					self.pi[a, state] += self.nu * delta
-				# why is this necessary?
-				temp = self.temp * self.decay**self.iter	
-				if temp > 0:		
-					self.pi[:, state] = softmax(self.pi[:, state] / temp, axis=0)
+			reward = self.rewards[-1]
+			self.Q[action, state] += self.alpha*(reward - self.Q[action, state] + self.gamma*np.max(self.Q[:, stateNew]))
+			self.V[state] = np.sum(self.pi[:, state]*self.Q[:, state])
+			for a in range(self.nActions):
+				if (1-self.pi[a, state]) == 0:
+					self.delta[a, state] = (self.Q[a, state] - self.V[state])
+				else:
+					self.delta[a, state] = (self.Q[a, state] - self.V[state]) / (1-self.pi[a, state])
+				delta = self.delta[a, state] - self.xi * np.abs(self.delta[a, state]) * self.pi[a, state]
+				self.pi[a, state] += self.nu * delta
+			# why is this necessary?
+			temp = self.temp * self.decay**self.iter	
+			if temp > 0:		
+				self.pi[:, state] = softmax(self.pi[:, state] / temp, axis=0)
 
 	def reset(self):
 		super().reset()
@@ -461,6 +505,22 @@ class PGAAPP(AgentBase):
 		self.pi = data['pi']
 		self.delta = data['delta']
 		self.V = data['V']
+
+	# def setData(self, data, rlData):
+	# 	super().setData(data)
+	# 	self.Q = rlData['Q']
+	# 	self.pi = rlData['pi']
+	# 	self.delta = rlData['delta']
+	# 	self.V = rlData['V']
+
+	# def getData(self):
+	# 	rlDict = {
+	# 		'Q': self.Q,
+	# 		'pi': self.pi,
+	# 		'delta': self.delta,
+	# 		'V': self.V,
+	# 	}
+	# 	return rlDict
 
 
 class ModelBased(AgentBase):
@@ -489,7 +549,7 @@ class ModelBased(AgentBase):
 		epsilon = self.epsilon + self.decay**self.iter
 		if np.random.rand() < epsilon:
 			action = np.random.randint(0, money) if money > 0 else 0
-		elif len(self.otherActions) < 1:
+		elif len(self.otherActions) < 1 or len(self.myActions) < 1:
 			if self.firstMove == "Generous":
 				action = money if self.player == "A" else int(money/2)
 			elif self.firstMove == "Random":
@@ -507,27 +567,26 @@ class ModelBased(AgentBase):
 		return m + k*self.myActions[idx] + l*self.otherActions[idx]
 
 	def update(self):
-		if len(self.otherActions) > 1:
+		if len(self.otherActions) > 2 and len(self.myActions) > 2 and self.learning:
 			state = self.getState(-2)
 			stateNew = self.getState(-1)
 			action = self.myActions[-1]
-			if self.learning:
-				reward = self.rewards[-1]
-				self.nAS[action, state] += 1
-				self.nASS[action, state, stateNew] += 1
-				self.T[action, state, :] = self.nASS[action, state, :] / self.nAS[action, state]
-				self.R[action, state] = (reward + (self.nAS[action, state]-1) * self.R[action, state]) / self.nAS[action, state]
-				if self.gameIter % self.updateFreq == 0:
-					Tpi = np.zeros((self.nStates, self.nStates))
-					Rpi = np.zeros((self.nStates))
-					for si in range(self.nStates):
-						a = self.pi[si]
-						Tpi[si] = self.T[a, si]
-						Rpi[si] = self.R[a, si]
-					A = np.eye(self.nStates) - self.gamma*Tpi
-					B = Rpi
-					self.V = np.linalg.solve(A, B)
-				self.pi = np.argmax(self.R + self.gamma * (self.T @ self.V), axis=0)
+			reward = self.rewards[-1]
+			self.nAS[action, state] += 1
+			self.nASS[action, state, stateNew] += 1
+			self.T[action, state, :] = self.nASS[action, state, :] / self.nAS[action, state]
+			self.R[action, state] = (reward + (self.nAS[action, state]-1) * self.R[action, state]) / self.nAS[action, state]
+			if self.gameIter % self.updateFreq == 0:
+				Tpi = np.zeros((self.nStates, self.nStates))
+				Rpi = np.zeros((self.nStates))
+				for si in range(self.nStates):
+					a = self.pi[si]
+					Tpi[si] = self.T[a, si]
+					Rpi[si] = self.R[a, si]
+				A = np.eye(self.nStates) - self.gamma*Tpi
+				B = Rpi
+				self.V = np.linalg.solve(A, B)
+			self.pi = np.argmax(self.R + self.gamma * (self.T @ self.V), axis=0)
 
 	def reset(self):
 		super().reset()
@@ -558,3 +617,21 @@ class ModelBased(AgentBase):
 		self.V = data['V']
 		self.nASS = data['nASS']
 		self.pi = data['pi']
+
+	# def setData(self, data, rlData):
+	# 	super().setData(data)
+	# 	self.R = rlData['R']
+	# 	self.T = rlData['T']
+	# 	self.V = rlData['V']
+	# 	self.nASS = rlData['nASS']
+	# 	self.pi = rlData['pi']
+
+	# def getData(self):
+	# 	rlDict = {
+	# 		'R': self.R,
+	# 		'T': self.T,
+	# 		'V': self.V,
+	# 		'nASS': self.nASS,
+	# 		'pi': self.pi,
+	# 	}
+	# 	return rlDict

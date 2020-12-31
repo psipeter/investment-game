@@ -1,22 +1,42 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
 
-{% load static %}
-<link rel="stylesheet" href="{% static 'home.css' %}">
-
-{% block title %}
+<head>
 	<title>Home</title>
-{% endblock %}
+	{% load static %}
+	<link rel="stylesheet" href="{% static 'home.css' %}">
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
 
-{% block content %}
-	<h1>Username: {{user.username}}</h1>
-	<h1>Games Played: {{myGames}}</h1>
-	<h2><a href="{% url 'logout' %}">Logout</a> </h2>
-	<h2><a href="{% url 'information' %}">Review Study Information</a> </h2>
-	<h2><a href="{% url 'consent_signed' %}">Review Consent Form</a> </h2>
-	<h2><a href="{% url 'survey' %}">Survey</a> </h2>
-	{% if user.currentGame %}
-		<h2><a href="{% url 'continue' %}">Continue Game</a> </h2>
-	{% else %}
-		<h2><a href="{% url 'game' %}">Start Game</a> </h2>
-	{% endif %}
-{% endblock %}
+<body>
+	<h1>
+		Welcome,
+		{% if user.displayName is not None %}
+			{{user.displayName}}
+		{% else %}
+			{{user.userName}}
+		{% endif %}
+	</h1>
+	<div class="wrapper">
+	<!-- <h1>Games Played: {{myGames}}</h1> -->
+		<div class="leftbar">
+			<p><a href="{% url 'logout' %}">Logout</a> </p>
+			<p><a href="{% url 'information' %}">Review Study Information</a> </p>
+			<p><a href="{% url 'consent_signed' %}">Review Consent Form</a> </p>
+			<p><a href="{% url 'survey' %}">Survey</a> </p>
+		</div>
+		<div class="main">
+			{% if user.currentGame %}
+				<p><a href="{% url 'continue' %}">Continue Game</a> </p>
+			{% else %}
+				<p><a href="{% url 'game' %}">Start Game</a> </p>
+			{% endif %}
+			
+		</div>
+		<div class="rightbar">
+			<p> games: {{myGames}}</p>
+			<p> more stats</p>			
+		</div>
+	</div>
+</body>

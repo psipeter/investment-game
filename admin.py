@@ -18,8 +18,8 @@ class Game(admin.ModelAdmin):
 
 @admin.register(Agent)
 class Agent(admin.ModelAdmin):
-	list_display = ('agentType','uuid')
+	list_display = ('agentType','created')
 
 @admin.register(User)
 class User(UserAdmin):
-	list_display = ('username', 'currentGame', 'age', 'gender', 'income', 'education', 'veteran', 'empathy', 'risk', 'altruism')
+	list_display = ('username', 'displayName', 'currentGame', 'age', 'gender', 'income', 'education', 'veteran', 'empathy', 'risk', 'altruism')

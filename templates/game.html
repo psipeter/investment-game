@@ -5,86 +5,108 @@
 	<title>Game</title>
 	{% load static %}
 	<link rel="stylesheet" href="{% static 'game.css' %}">
+	<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<script
+		src="https://code.jquery.com/jquery-3.5.1.min.js">
+	</script>
+	<script
+		src="https://code.jquery.com/ui/1.12.1/jquery-ui.js">
+	</script>
 </head>
 
 <body>
-	<h1>Game ID: {{game.uuid}}</h1>
-	<div class="info">
-		<h2 id="playerA">Player A</h2>
-		<h2 id="playerB">Player B</h2>
-	</div>
+	<p class="top">Game ID: {{game.uuid}}</p>
 
 	{% if game.userRole == "A" %}
-		<div class="info">
-			<p>{{user}}</p>
-			<p>{{game.agent.agentType}}</p>
+		<div class="grid">
+			<h2 id="playerA" class="leftPlayer">
+				{% if user.displayName is not None %}
+					{{user.displayName}}
+				{% else %}
+					{{user.userName}}
+				{% endif %}
+			</h2>
+			<h2 id="playerB" class="rightPlayer">{{game.agent.agentType}}</h2>
 		</div>
-		<div class='moves'>
+		<div class="finalScore leftright">
+			<h3>Final Score:</h3>
+			<h3>Final Score:</h3>
+		</div>
+		<div class='grid'>
 			<div class="user">
-				<p class="left" id="userMove">
-					{% if game.userMove is not None %}
-						{{game.userMove}}
-					{% endif %}
-				</p>
+				<p class="left" id="userReward"></p>
 			</div>
-			<div class="form">
-				<form
-					type="range"
-					id="djangoForm"
-					method="POST"
-					updateURL="{% url 'updateGame' %}">
-						{% csrf_token %} 
-						{{form.as_p}}
-				</form>
-				<input type="submit" id="submitButton" form="djangoForm">
-			</div>
+			<form id="form">
+				{% csrf_token %}
+				<p id="whoseMove">Your Move</p>
+				<div id="inside" class="ui-slider-handle"></div>
+				<input type="submit" id="submit" updateURL="{% url 'updateGame' %}" value="send">
+			</form>
 			<div class='agent'>
-				<p class="right" id="agentMove">
-					{% if game.agentMove is not None %}
-						{{game.agentMove}}
-					{% endif %}
-				</p>
+				<p class="right" id="agentReward"></p>
 			</div>
 		</div>
-		<div class="info">
-			<p id="userMoves">{{game.userMoves}}</p>
-			<p id="agentMoves">{{game.agentMoves}}</p>
+		<div class="leftright">
+			<p>Moves</p>
+			<p>Moves</p>
+		</div>
+		<div class="leftright">
+			<p id="userMoves"></p>
+			<p id="agentMoves"></p>
 		</div>
 
 	{% else %}
-		<div class="info">
-			<p>{{game.agent.agentType}}</p>
-			<p>{{user}}</p>
+		<div class="grid">
+			<h2 id="playerA" class="leftPlayer">{{game.agent.agentType}}</h2>
+			<h2 id="playerB" class="rightPlayer">
+				{% if user.displayName is not None %}
+					{{user.displayName}}
+				{% else %}
+					{{user.userName}}
+				{% endif %}
+			</h2>
 		</div>
-		<div class='moves'>
+		<div class="finalScore leftright">
+			<h3>Final Score:</h3>
+			<h3>Final Score:</h3>
+		</div>
+		<div class='grid'>
 			<div class='agent'>
-				<p class="left" id="agentMove"></p>
+				<p class="left" id="agentReward"></p>
 			</div>
-			<div class="send">
-				<input class="send" type="submit" id="submitButton" form="djangoForm" value="send 0"/>
-			</div>
+			<form id="form">
+				{% csrf_token %}
+				<p id="whoseMove">Your Move</p>
+				<div id="inside" class="ui-slider-handle"></div>
+				<input type="submit" id="submit" updateURL="{% url 'updateGame' %}" value="send">
+			</form>
 			<div class="user">
-				<form type="range" id="djangoForm" method="POST">
-					{% csrf_token %}
-					<input type="hidden" name="gameID" value="{{game.id}}" />
-					{{form.as_p}}
-				</form>
-				<p class="right" id="userMove"></p>
+				<p class="right" id="userReward"></p>
 			</div>
 		</div>
-		<div class="info">
+		<div class="leftright">
+			<p>Moves</p>
+			<p>Moves</p>
+		</div>
+		<div class="leftright">
 			<p id="agentMoves"></p>
 			<p id="userMoves"></p>
-		</div>		
+		</div>
 	{% endif %}
 
-	<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+	<div hidden id='end'>
+        <a href="{% url 'home' %}">Home</a>
+        <a href="{% url 'game' %}">Play Again</a>
+    </div>
+
 	<script type="text/javascript">
 		//pass django variables to external javascript
-		let homeURL = "{% url 'home' %}";
-		let gameURL = "{% url 'game' %}";
+		let userRole = "{{game.userRole}}";
+		let capital = "{{game.capital}}";
+		let matchFactor = "{{game.matchFactor}}";
+		let initialAgentMove = "{{game.agentMove}}";
 	</script>
 	<script src="{% static 'game.js' %}"></script>
 </body>

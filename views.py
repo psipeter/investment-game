@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.conf import settings
 from .models import Game, User
-from game.forms import UserForm, ProfileForm, GameForm
+from game.forms import UserForm, ProfileForm
 
 def information(request):
 	return render(request, "information.html", context={})
@@ -51,20 +51,17 @@ def user(request, username):
 
 @login_required
 def startGame(request):
-	if request.user.currentGame:
-		return redirect('continue') # enforce one currentGame
+	# if request.user.currentGame:
+	# 	return redirect('continue') # enforce one currentGame
 	game = Game()
 	game.start(request.user)
-	form = GameForm(instance=game)
-	context = {'game': game, 'form': form}
+	context = {'game': game}
 	return render(request, "game.html", context=context)
 
 @login_required
 def continueGame(request):
 	game = request.user.currentGame
-	print(game)
-	form = GameForm(instance=game)
-	context = {'game': game, 'form': form}
+	context = {'game': game}
 	return render(request, "game.html", context=context)
 
 @login_required

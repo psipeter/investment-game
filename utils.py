@@ -60,8 +60,8 @@ def trainQLearning(agent1, agent2, env, nEps, plot=True, report=False):
 
 
 def recovery(agent1, agent2, env, nAvg, nEps):
-	agent1.setPlayer("A")
-	agent2.setPlayer("B")
+	agent1.setPlayer("A", init=True)
+	agent2.setPlayer("B", init=True)
 	agent1.alpha = 3e-2
 	agent2.alpha = 3e-2
 	agent1.decay = 0.95
@@ -96,8 +96,8 @@ def performance(agent, pop, env, nAvg, nEps, alphaA=3e-2, alphaB=3e-2, learners=
 		rewardsInvestorB = np.zeros((nAvg, nEps))
 		rewardsReturnerA = np.zeros((nAvg, nEps))
 		rewardsReturnerB = np.zeros((nAvg, nEps))
-		agent.setPlayer("A")
-		agent2.setPlayer("B")
+		agent.setPlayer("A", init=True)
+		agent2.setPlayer("B", init=True)
 		if learners:
 			agent.alpha = alphaA
 			agent2.alpha = alphaB
@@ -108,8 +108,8 @@ def performance(agent, pop, env, nAvg, nEps, alphaA=3e-2, alphaB=3e-2, learners=
 			agent.fullReset()
 			agent2.fullReset()
 		print("B")
-		agent.setPlayer("B")
-		agent2.setPlayer("A")
+		agent.setPlayer("B", init=True)
+		agent2.setPlayer("A", init=True)
 		if learners:
 			agent.alpha = alphaB
 			agent2.alpha = alphaA
@@ -139,16 +139,16 @@ def tournament(pop, env, nAvg, nRounds):
 				agent1 = pair[0]
 				agent2 = pair[1]
 				# print("%s vs %s"%(agent1.ID, agent2.ID))
-				agent1.setPlayer("A")
-				agent2.setPlayer("B")
+				agent1.setPlayer("A", init=True)
+				agent2.setPlayer("B", init=True)
 				playGame(agent1, agent2, env, plot=False)
 				rI, rR = np.mean(agent1.rewards), np.mean(agent2.rewards)
 				dfs.append(pd.DataFrame([[agent1.ID, agent2.ID, a, r, rI, "A"]], columns=columns))
 				dfs.append(pd.DataFrame([[agent2.ID, agent1.ID, a, r, rR, "B"]], columns=columns))
 				agent1.reset()
 				agent2.reset()
-				agent2.setPlayer("A")
-				agent1.setPlayer("B")
+				agent2.setPlayer("A", init=True)
+				agent1.setPlayer("B", init=True)
 				playGame(agent1, agent2, env, plot=False)
 				rR, rI = np.mean(agent1.rewards), np.mean(agent2.rewards)
 				dfs.append(pd.DataFrame([[agent1.ID, agent2.ID, a, r, rR, "B"]], columns=columns))

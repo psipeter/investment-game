@@ -1,3 +1,32 @@
+.wrapper {
+	display: grid;
+	grid-template-columns: 1fr 3fr 1fr;
+	/*grid-template-rows: 1fr 1fr 1fr 1fr;*/
+}
+
 h1 {
-	color: red;
+	font-size: 35px;
+	text-align: center;
+
+}
+
+.leftbar {
+	margin: 0;
+	grid-column: 1;
+	background-color: #a39493;
+}
+
+.main {
+	margin: 0;
+	font-size: 24px;
+	grid-column: 2;
+	grid-row: 1;
+	text-align: center;
+}
+
+.rightbar {
+	margin: 0;
+	grid-column: 3;
+	text-align: right;
+	background-color: #8d9fa6;
 }

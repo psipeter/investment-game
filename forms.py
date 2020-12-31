@@ -5,65 +5,40 @@ from django.forms.widgets import NumberInput
 from django.core.validators import MaxValueValidator, MinValueValidator
 from . import models
 
-class GameForm(forms.ModelForm):
-	def __init__(self, *args, **kwargs):   
-		super(GameForm, self ).__init__(*args, **kwargs)
-		capital = self.instance.capital
-		matchFactor = self.instance.matchFactor
-		if self.instance.userRole == "A":
-			high = capital
-		else:
-			high = matchFactor * capital 
-		self.fields['userMove'].validators.append(MinValueValidator(0))
-		self.fields['userMove'].validators.append(MaxValueValidator(high))
-		self.fields['userMove'].widget.attrs.update({"min": 0, "max": high})
-		self.fields['userMove'].initial = 0
-	class Meta:
-		model = models.Game
-		fields = ('userMove',)
-		labels = {"userMove": ""}
-		high = 30  # todo
-		widgets = {'userMove': forms.NumberInput(attrs={
-			'type':'range',
-			'step': 1,
-			'initial': 0,
-			'min': 0,
-			'max': high})}
-
 class UserForm(UserCreationForm):
 	username = forms.CharField(label="MTurk ID")
+	displayName = forms.CharField(label="Display Name (optional)", required=False)	
 	password1 = forms.CharField(label='Enter password', widget=forms.PasswordInput)
 	password2 = forms.CharField(label='Confirm password', widget=forms.PasswordInput)
 	# todo: validation
 	class Meta:
 		model = models.User
-		fields = ('username', 'password1', 'password2')
-		labels = {'username': 'MTurk ID', 'password1': "Enter Password", 'password2': 'Confirm Password'}
-		help_texts = {'username': None, 'password1': None, 'password2': None}
+		fields = ('username', 'displayName', 'password1', 'password2')
+		labels = {'username': 'MTurk ID', 'displayName': 'Display Name (optional)', 'password1': "Enter Password", 'password2': 'Confirm Password'}
+		help_texts = {'username': None, 'displayName': None, 'password1': None, 'password2': None}
+
 
 class ProfileForm(forms.ModelForm):
-	age = forms.IntegerField(min_value=18, max_value=120)
+	age = forms.IntegerField(min_value=18, max_value=120, required=False)
 	genderChoices = (
-		('skip', '---'),
+		('', '---'),
 		('m', 'Male'),
 		('f', 'Female'),
-		('o', 'Non-Binary')
-		)
-	gender = forms.ChoiceField(choices=genderChoices)
-	income = forms.FloatField(label="Yearly Household Income")
+		('o', 'Non-Binary'))
+	gender = forms.ChoiceField(choices=genderChoices, required=False)
+	income = forms.FloatField(label="Yearly Household Income", required=False)
 	educationChoices = (
-		('skip', '---'),
+		('', '---'),
 		('1', 'Primary (middle) school'),
 		('2', 'Secondary (high) school'),
 		('3', 'Undergraduate degree'),
 		('4', 'Graduate degree'),
-		('6', 'Other'),
-		)
-	education = forms.ChoiceField(choices=educationChoices)
-	veteran = forms.ChoiceField(
-		label="Do you have experience playing games similar to the Investment Game?",
-		choices=(("No", "No"), ('Yes', "Yes")),
-		initial="No",)
+		('6', 'Other'))
+	education = forms.ChoiceField(choices=educationChoices, required=False)
+	veteran = forms.BooleanField(
+		label="Have you played the Prisoner's Dilemma?",
+		initial=False,
+		required=False)
 	empathyHelpText = "How easily can you figure out what \
 		other people are thinking or feeling during a conversation? \
 		1 indicates that you struggle to understand others’ motivations, \
@@ -79,9 +54,9 @@ class ProfileForm(forms.ModelForm):
 		how much do you give away to friends, family, and charity?\
 		1 indicates you would keep all your winnings, and 10 \
 		indicates you would redistribute all your winnings."
-	empathy = forms.IntegerField(min_value=1, max_value=10, help_text=empathyHelpText)
-	risk = forms.IntegerField(min_value=1, max_value=10, help_text=riskHelpText)
-	altruism = forms.IntegerField(min_value=1, max_value=10, help_text=altruismHelpText)
+	empathy = forms.IntegerField(min_value=1, max_value=10, help_text=empathyHelpText, required=False)
+	risk = forms.IntegerField(min_value=1, max_value=10, help_text=riskHelpText, required=False)
+	altruism = forms.IntegerField(min_value=1, max_value=10, help_text=altruismHelpText, required=False)
 
 	class Meta:
 		model = models.User
