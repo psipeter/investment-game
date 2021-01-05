@@ -9,7 +9,7 @@ class Game(admin.ModelAdmin):
 	list_display = ('uuid',
 		'user', 'userRole', 'userScore',
 		'get_agent', 'agentRole', 'agentScore',
-		'date', 'userMoves', 'agentMoves')
+		'date', 'userMoves', 'agentMoves', 'userTimes')
 	ordering = ('-date',)
 	def get_agent(self, obj):
 		return obj.agent.agentType
@@ -22,4 +22,4 @@ class Agent(admin.ModelAdmin):
 
 @admin.register(User)
 class User(UserAdmin):
-	list_display = ('username', 'displayName', 'currentGame', 'age', 'gender', 'income', 'education', 'veteran', 'empathy', 'risk', 'altruism')
+	list_display = ('username', 'currentGame', 'requiredGames', 'bonusGames', 'age', 'gender', 'income', 'education', 'veteran', 'empathy', 'risk', 'altruism')

@@ -53,3 +53,12 @@ input.submit {
 input.submit:hover {
   background-color: #333;
 }
+
+.red {
+	color: red;
+}
+
+.center {
+	text-align: center;
+	font-size: 24px;
+}

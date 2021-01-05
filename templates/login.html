@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>login</title>
+	{% load static %}
+	<link rel="stylesheet" href="{% static 'login.css' %}">
+	<meta charset="utf-8">
+</head>
+
+<body>
+	<h1>Investment Game Webapp</h1>
+
+	<form id="loginForm "method="post" action="{% url 'login' %}">
+		{% csrf_token %}
+		<table>
+			<tr><td>{{ form.username }}</td></tr>
+			<tr><td>{{ form.password }}</td></tr>
+		</table>
+		<input type="submit" value="Login" />
+		<input type="hidden" name="next" value="{{ next }}" />
+	</form>
+
+	{% if form.errors.username %}
+		<p class="center">MTurk ID not found</p>
+	{% elif form.errors.password %}
+		<p class="center">Password incorrect</p>
+	{% else %}
+	{% endif %}
+	{% if next %}
+		<p class="center">Please login to see this page.</p>
+	{% endif %}
+
+	<div class="spaced">
+		<button id="reset">Forgot your password?</button>
+	</div>
+	<div class="spaced">
+		<button id="register">Sign up</button>
+	</div>
+
+	<script type="text/javascript">
+		document.getElementById("reset").onclick = function () {
+			location.href = "{% url 'reset' %}";
+		};
+		document.getElementById("register").onclick = function () {
+			location.href = "{% url 'information' %}";
+		};
+	</script>
+</body>

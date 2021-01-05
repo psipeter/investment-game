@@ -4,6 +4,8 @@ $(function() {  //on page load
     let maxUser = 0;
     let maxAgent = 0;
     let turnTime = 1000;
+    let startTime = performance.now();
+    let endTime = performance.now();
     if (userRole == "A") {
         maxUser = capital;
         maxAgent = 0;  // updated after user moves
@@ -72,7 +74,7 @@ $(function() {  //on page load
                 if (i<=agentMove) {recursiveSlide();}
             }, turnTime/maxAgent);
         }        
-        recursiveSlide();
+        setTimeout(recursiveSlide, 500);
     }
 
     function animateAgent(agentMove, data=null) {
@@ -83,6 +85,7 @@ $(function() {  //on page load
             $("#submit").show();
             $("#whoseMove").replaceWith("<p id='whoseMove'>Your Move</p>");
             constrainSliderUser();
+            startTime = performance.now()
             if (data){gameComplete(data);}
         }, turnTime+1000); //activates 1s after turnTime
     }
@@ -101,13 +104,17 @@ $(function() {  //on page load
 
     // called when user submits a move
     $("#submit").click(function callUpdate() {
+        endTime = performance.now()
+        let userTime = (endTime-startTime);
         let userMove = getUserMove();
         $("#userMoves").text($("#userMoves").text()+userMove+",")
         $("#submit").hide();
-        $("#whoseMove").replaceWith("<p id='whoseMove'>Agent's Move</p>");
+        $("#whoseMove").replaceWith("<p id='whoseMove'>Opponent Move</p>");
         let form = $("#form");
-        let extraData = $('<input type="hidden" name="userMove"/>').val(userMove);
-        form.append(extraData);
+        let moveData = $('<input type="hidden" name="userMove"/>').val(userMove);
+        let timeData = $('<input type="hidden" name="userTime"/>').val(userTime);
+        form.append(moveData);
+        form.append(timeData);
         let data = form.serialize();
         $.ajax({
             method: 'POST',
@@ -158,7 +165,7 @@ $(function() {  //on page load
 
     // animate agent's first choice
     if (userRole == "B") {
-        $("#whoseMove").replaceWith("<p id='whoseMove'>Agent's Move</p>");
+        $("#whoseMove").replaceWith("<p id='whoseMove'>Opponent Move</p>");
         animateAgent(initialAgentMove);
     }
 

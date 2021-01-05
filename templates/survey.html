@@ -1,17 +1,58 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
 
-{% block title %}
+<head>
 	<title>Survey</title>
-{% endblock %}
+	{% load static %}
+	<link rel="stylesheet" href="{% static 'survey.css' %}">
+	<meta charset="utf-8">
+</head>
 
-{% block content %}
-	<h1 id="top">Survey</h1>
-	<p>Please complete the following survey. All responses are optional</p>
+<body>
+	<h1>Survey</h1>
+	<h2>Please complete the survey. All responses are optional</h2>
 	<form method="POST">
-		{% csrf_token %} 
-		{{form.as_p}}
+		{% csrf_token %}
+		<table>
+			<tr>
+				<td>{{ form.age.label_tag }}</td>
+				<td>{{ form.age }}</td>
+			</tr>
+			<tr>
+				<td>{{ form.gender.label_tag }}</td>
+				<td>{{ form.gender }}</td>
+			</tr>
+			<tr>
+				<td>{{ form.income.label_tag }}</td>
+				<td>{{ form.income }}</td>
+			</tr>
+			<tr>
+				<td>{{ form.education.label_tag }}</td>
+				<td>{{ form.education }}</td>
+			</tr>
+			<tr>
+				<td>{{ form.veteran.label_tag }}</td>
+				<td>{{ form.veteran }}</td>
+			</tr>
+		</table>
+		<br>
+		<p>For the next three questions, you will be asked to report a number between 1 and 10</p>
+		<div class="grid">
+			<p>{{ form.empathy.label}}</p>
+			<p class="middle">{{ form.empathy }}</p>
+			<p><strong>1</strong> - you struggle to understand others’ feelings <br><strong>10</strong> - you intuitively understand others’ feelings</p>
+		</div>
+		<div class="grid">
+			<p>{{ form.risk.label}}</p>
+			<p class="middle">{{ form.risk }}</p>
+			<p><strong>1</strong> - you give them nothing <br><strong>10</strong> - you give them the full amount</td></p>
+		</div>
+		<div class="grid">
+			<p>{{ form.altruism.label}}</p>
+			<p class="middle">{{ form.altruism }}</p>
+			<p><strong>1</strong> - you keep all your winnings <br><strong>10</strong> - you redistribute all your winnings</p>
+		</div>
 		<br>
 		<input type="submit" value ="Submit"/> 
 	</form>
-
-{% endblock %}
+</body>

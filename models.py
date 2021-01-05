@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator, validate_comma_separated_integer_list
 from django.conf import settings
+from django.utils.crypto import get_random_string
 
 import uuid
 import numpy as np
@@ -118,6 +119,7 @@ class Game(models.Model):
 	userMove = models.IntegerField(null=True, blank=True)
 	agentMove = models.IntegerField(null=True, blank=True)
 	userMoves = models.CharField(max_length=300, blank=True, null=True, default=str)
+	userTimes = models.CharField(max_length=300, blank=True, null=True, default=str)
 	agentMoves = models.CharField(max_length=300, blank=True, null=True, default=str)
 	userRole = models.CharField(max_length=1, choices=(("A", "A"), ("B", "B")), null=True, blank=True)
 	agentRole = models.CharField(max_length=1, choices=(("A", "A"), ("B", "B")), null=True, blank=True)
@@ -150,8 +152,9 @@ class Game(models.Model):
 		self.user.setCurrentGame(self)
 		self.save()
 
-	def step(self, userMove):
+	def step(self, userMove, userTime):
 		self.setMoves("user", userMove)
+		self.setTimes(userTime)
 		if self.userRole == "A":
 			invest = int(self.userMove)
 			matched = self.matchFactor*invest
@@ -188,6 +191,11 @@ class Game(models.Model):
 			self.agentMoves += "%s,"%move
 		self.save()
 
+	def setTimes(self, time):
+		time = int(time.split(".")[0])  # remove digits smaller than ms
+		self.userTimes += "%s,"%(time/1000)
+		self.save()
+
 	def getMoves(self, string):
 		return np.array(string.split(',')[:-1]).astype(np.int)
 
@@ -205,8 +213,22 @@ class Game(models.Model):
 
 
 class User(AbstractUser):
+	# Status
 	currentGame = models.ForeignKey(Game, on_delete=models.SET_NULL, null=True, blank=True, related_name="currentGame")
-	displayName = models.CharField(max_length=100, default=None, null=True, blank=True)
+	requiredGames = models.IntegerField(default=0)
+	bonusGames = models.IntegerField(default=0)
+	doneInformation = models.BooleanField(default=False)
+	doneConsent = models.BooleanField(default=False)
+	doneSurvey = models.BooleanField(default=False)
+	doneTutorial = models.BooleanField(default=False)
+	doneRequiredGames = models.BooleanField(default=False)
+	doneBonusGames = models.BooleanField(default=False)
+	doneCashedOut = models.BooleanField(default=False)
+	completionCode = models.CharField(
+		max_length=32,
+		default=get_random_string(length=32),
+		help_text="MTurk Confirmation Code")
+	# Survey information
 	age = models.IntegerField(
 		validators=[MinValueValidator(18), MaxValueValidator(120)],
 		null=True, blank=True)
@@ -244,6 +266,22 @@ class User(AbstractUser):
 
 	def setCurrentGame(self, currentGame):
 		self.currentGame = currentGame
+		if self.requiredGames >= 3:
+			self.doneRequiredGames = True
+		if self.bonusGames >= 60:
+			self.doneBonusGames = True
+		self.save()
+
+	def finishGame(self):
+		self.currentGame = None
+		if not self.doneRequiredGames:
+			self.requiredGames += 1
+		else:
+			self.bonusGames += 1
+		if self.requiredGames >= 3:
+			self.doneRequiredGames = True
+		if self.bonusGames >= 60:
+			self.doneBonusGames = True
 		self.save()
 
 	class Meta:

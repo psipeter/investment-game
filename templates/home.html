@@ -10,33 +10,97 @@
 </head>
 
 <body>
-	<h1>
-		Welcome,
-		{% if user.displayName is not None %}
-			{{user.displayName}}
-		{% else %}
-			{{user.userName}}
-		{% endif %}
-	</h1>
-	<div class="wrapper">
-	<!-- <h1>Games Played: {{myGames}}</h1> -->
-		<div class="leftbar">
+	<div class="topbar">
+		<div class="welcome">
+			<p>ID: {{user.username}}</p>			
+		</div>
+		<div class="title">
+			<p>Your Account</p>			
+		</div>
+		<div class="logout">			
 			<p><a href="{% url 'logout' %}">Logout</a> </p>
-			<p><a href="{% url 'information' %}">Review Study Information</a> </p>
-			<p><a href="{% url 'consent_signed' %}">Review Consent Form</a> </p>
-			<p><a href="{% url 'survey' %}">Survey</a> </p>
-		</div>
-		<div class="main">
-			{% if user.currentGame %}
-				<p><a href="{% url 'continue' %}">Continue Game</a> </p>
-			{% else %}
-				<p><a href="{% url 'game' %}">Start Game</a> </p>
-			{% endif %}
-			
-		</div>
-		<div class="rightbar">
-			<p> games: {{myGames}}</p>
-			<p> more stats</p>			
 		</div>
 	</div>
+
+	<div class="main">
+		<div class="mainleft">
+			{% if user.doneInformation %}
+				<img src="{% static 'check.png' %}" alt="task complete">
+				{% else %}
+				<img src="{% static 'x.png' %}" alt="task incomplete">
+				{% endif %}
+			{% if user.doneConsent %}
+				<img src="{% static 'check.png' %}" alt="task complete">
+				{% else %}
+				<img src="{% static 'x.png' %}" alt="task incomplete">
+				{% endif %}
+			{% if user.doneSurvey %}
+				<img src="{% static 'check.png' %}" alt="task complete">
+				{% else %}
+				<img src="{% static 'o.png' %}" alt="task optional">
+				{% endif %}
+			{% if user.doneTutorial %}
+				<img src="{% static 'check.png' %}" alt="task complete">
+				{% else %}
+				<img src="{% static 'arrow.png' %}" alt="task active">
+				{% endif %}
+			{% if user.doneRequiredGames %}
+				<img src="{% static 'check.png' %}" alt="task complete">
+				{% elif user.doneTutorial %}
+				<img src="{% static 'arrow.png' %}" alt="task active">
+				{% else %}
+				<img src="{% static 'x.png' %}" alt="task incomplete">
+				{% endif %}
+			{% if user.doneBonusGames %}
+				<img src="{% static 'check.png' %}" alt="task complete">
+				{% elif user.doneTutorial and user.doneRequiredGames%}
+				<img src="{% static 'arrow.png' %}" alt="task active">
+				{% else %}				
+				<img src="{% static 'x.png' %}" alt="task incomplete">
+				{% endif %}
+			{% if user.doneTutorial and user.doneRequiredGames %}
+				<img src="{% static 'arrow.png' %}" alt="cash out available">
+				{% else %}
+				<img src="{% static 'x.png' %}" alt="cash out unavailable">
+				{% endif %}
+			<img src="{% static 'o.png' %}" alt="task optional">
+		</div>
+		<div class="mainright">
+			<p>Read <a href="{% url 'information' %}">Study Information</a></p>
+			<p>Give <a href="{% url 'consent_signed' %}">Consent</a></p>
+			<p>Fill out <a href="{% url 'survey' %}">Survey</a></p>
+			<p>Complete <a href="{% url 'tutorial' %}">Tutorial</a></p>
+			<div class="games">
+				<p class="gameL">Play required games ({{user.requiredGames}}/3)</p>
+				{% if user.doneTutorial and not user.doneRequiredGames %}
+					{% if user.currentGame %}
+						<p class="gameR"><a href="{% url 'continue' %}">Continue Game</a></p>
+					{% else %}
+						<p class="gameR"><a href="{% url 'game' %}">Start Game</a></p>
+					{% endif %}
+				{% endif %}
+			</div>
+			<div class="games">
+				<p class="gameL">Play bonus games ({{user.bonusGames}}/60)</p>
+				{% if user.doneTutorial and user.doneRequiredGames and not user.doneBonusGames %}
+					{% if user.currentGame %}
+						<p class="gameR"><a href="{% url 'continue' %}">Continue Game</a></p>
+					{% else %}
+						<p class="gameR"><a href="{% url 'game' %}">Start Game</a></p>
+					{% endif %}
+				{% endif %}
+			</div>
+			{% if user.doneTutorial and user.doneRequiredGames %}
+				<p><a href="{% url 'cash_out' %}">Cash Out!</a></p>
+			{% else %}
+				<p>Cash Out!</p>
+			{% endif %}
+			{% if user.doneTutorial and user.doneRequiredGames %}
+				<p><a href="{% url 'feedback' %}">Give Feedback</a></p>
+			{% else %}
+				<p>Give Feedback</p>
+			{% endif %}
+		</div>
+
+	<!-- <div class="bottombar"></div> -->
 </body>

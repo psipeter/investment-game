@@ -1,22 +1,51 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import UserCreationForm, PasswordResetForm
 from django.core.exceptions import ValidationError
 from django.forms.widgets import NumberInput
 from django.core.validators import MaxValueValidator, MinValueValidator
 from . import models
 
-class UserForm(UserCreationForm):
+class LoginForm(forms.Form):
 	username = forms.CharField(label="MTurk ID")
-	displayName = forms.CharField(label="Display Name (optional)", required=False)	
-	password1 = forms.CharField(label='Enter password', widget=forms.PasswordInput)
-	password2 = forms.CharField(label='Confirm password', widget=forms.PasswordInput)
-	# todo: validation
+	password = forms.CharField(label='Password', widget=forms.PasswordInput)
+	username.widget.attrs.update({'placeholder':'MTurk ID'})	
+	password.widget.attrs.update({'placeholder':'Password'})	
+	username.widget.attrs.update({'autocomplete':'username'})	
+	password.widget.attrs.update({'autocomplete':'password'})	
 	class Meta:
 		model = models.User
-		fields = ('username', 'displayName', 'password1', 'password2')
-		labels = {'username': 'MTurk ID', 'displayName': 'Display Name (optional)', 'password1': "Enter Password", 'password2': 'Confirm Password'}
-		help_texts = {'username': None, 'displayName': None, 'password1': None, 'password2': None}
+		fields = ('username', 'password')
+		# labels = {'username': None, 'password': None}
+		# help_texts = {'username': None, 'password': None}
 
+
+class CreateForm(UserCreationForm):
+	username = forms.CharField(label="MTurk ID")
+	password1 = forms.CharField(label='Enter password', widget=forms.PasswordInput)
+	password2 = forms.CharField(label='Confirm password', widget=forms.PasswordInput)
+	class Meta:
+		model = models.User
+		fields = ('username', 'password1', 'password2')
+		labels = {'username': 'MTurk ID', 'password1': "Enter Password", 'password2': 'Confirm Password'}
+		help_texts = {'username': None, 'password1': None, 'password2': None}
+
+class ResetForm(forms.Form):
+	username = forms.CharField(label="MTurk ID")
+	password1 = forms.CharField(label='New password', widget=forms.PasswordInput)
+	password2 = forms.CharField(label='Confirm new password', widget=forms.PasswordInput)
+	def clean_username(self):
+		username = self.cleaned_data['username']
+		if models.User.objects.filter(username=username).exists():
+			return self.cleaned_data['username']
+		else:
+			raise ValidationError("MTurk ID does not exist in database")
+	def clean_password2(self):
+		password1 = self.cleaned_data['password1']
+		password2 = self.cleaned_data['password2']
+		if password1 == password2:
+			return self.cleaned_data['password2']
+		else:
+			raise ValidationError("Passwords do not match")
 
 class ProfileForm(forms.ModelForm):
 	age = forms.IntegerField(min_value=18, max_value=120, required=False)
@@ -39,24 +68,15 @@ class ProfileForm(forms.ModelForm):
 		label="Have you played the Prisoner's Dilemma?",
 		initial=False,
 		required=False)
-	empathyHelpText = "How easily can you figure out what \
-		other people are thinking or feeling during a conversation? \
-		1 indicates that you struggle to understand others’ motivations, \
-		nd 10 indicates that you intuitively understand others’ \
-		mental processes."
-	riskHelpText = "Imagine a coworker approaches you and \
-		asks for a $1000 loan, promising to return you the money, \
-		plus 20% interest, in a month. How likely are you to trust \
-		them and loan them the money? 1 indicates you wouldn’t give \
-		them anything, and 10 indicates you’d given them the full amount."
-	altruismHelpText = "Imagine you win a million dollars \
-		in the lottery. How much do you keep for yourself and \
-		how much do you give away to friends, family, and charity?\
-		1 indicates you would keep all your winnings, and 10 \
-		indicates you would redistribute all your winnings."
-	empathy = forms.IntegerField(min_value=1, max_value=10, help_text=empathyHelpText, required=False)
-	risk = forms.IntegerField(min_value=1, max_value=10, help_text=riskHelpText, required=False)
-	altruism = forms.IntegerField(min_value=1, max_value=10, help_text=altruismHelpText, required=False)
+	empathyLabel = "How easily can you figure out what other people are thinking or feeling during a conversation?"
+	empathyHelpText = "1 indicates that you struggle to understand others’ motivations, and 10 indicates that you intuitively understand others’ mental processes."
+	riskLabel = "Imagine a coworker approaches you and asks for a $1000 loan, promising to return you the money, plus 20% interest, in a month. How likely are you to trust them and loan them the money?"
+	riskHelpText = "1 indicates you wouldn’t give them anything, and 10 indicates you’d given them the full amount."
+	altruismLabel = "Imagine you win a million dollars in the lottery. How much do you keep for yourself and how much do you give away to friends, family, and charity?"
+	altruismHelpText = "1 indicates you would keep all your winnings, and 10 indicates you would redistribute all your winnings."
+	empathy = forms.IntegerField(min_value=1, max_value=10, label=empathyLabel, help_text=empathyHelpText, required=False)
+	risk = forms.IntegerField(min_value=1, max_value=10, label=riskLabel, help_text=riskHelpText, required=False)
+	altruism = forms.IntegerField(min_value=1, max_value=10, label=altruismLabel, help_text=altruismHelpText, required=False)
 
 	class Meta:
 		model = models.User

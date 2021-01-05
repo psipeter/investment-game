@@ -1,0 +1,40 @@
+html {
+	font-size: 16px;
+	font-family: 'Oswald', sans-serif; /*comment*/
+	background-color: #C7D3E0;
+}
+
+h1 {
+	margin: 0;
+	padding: 20px 0;
+	color: #00539F;
+	font-size: 32px;
+	text-align: center;
+	text-shadow: 1px 1px 1px black;
+}
+
+h2 {
+	font-size: 20px;
+	text-align: center;
+}
+
+input {
+	font-size: inherit;
+	font-family: inherit;
+	display: flex;
+	justify-content: center;
+}
+
+.grid {
+	position: relative;
+	display: grid;
+	grid-template-columns: 1fr 1fr 1fr;
+	grid-template-rows: 200px;
+}
+
+.middle {
+	font-size: inherit;
+	font-family: inherit;
+	display: inline-flex;
+	justify-content: center;
+}

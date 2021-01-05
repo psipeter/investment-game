@@ -21,14 +21,9 @@
 
 	{% if game.userRole == "A" %}
 		<div class="grid">
-			<h2 id="playerA" class="leftPlayer">
-				{% if user.displayName is not None %}
-					{{user.displayName}}
-				{% else %}
-					{{user.userName}}
-				{% endif %}
-			</h2>
-			<h2 id="playerB" class="rightPlayer">{{game.agent.agentType}}</h2>
+			<h2 id="playerA" class="leftPlayer">You</h2>
+			<h2 id="playerB" class="rightPlayer">Opponent</h2>
+			<!-- {{game.agent.agentType}} -->
 		</div>
 		<div class="finalScore leftright">
 			<h3>Final Score:</h3>
@@ -53,19 +48,15 @@
 			<p>Moves</p>
 		</div>
 		<div class="leftright">
-			<p id="userMoves"></p>
-			<p id="agentMoves"></p>
+			<p id="userMoves">{{game.userMoves}}</p>
+			<p id="agentMoves">{{game.agentMoves}}</p>
 		</div>
 
 	{% else %}
 		<div class="grid">
 			<h2 id="playerA" class="leftPlayer">{{game.agent.agentType}}</h2>
 			<h2 id="playerB" class="rightPlayer">
-				{% if user.displayName is not None %}
-					{{user.displayName}}
-				{% else %}
-					{{user.userName}}
-				{% endif %}
+				{{user.userName}}
 			</h2>
 		</div>
 		<div class="finalScore leftright">
@@ -91,8 +82,8 @@
 			<p>Moves</p>
 		</div>
 		<div class="leftright">
-			<p id="agentMoves"></p>
-			<p id="userMoves"></p>
+			<p id="agentMoves">{{game.agentMoves}}</p>
+			<p id="userMoves">{{game.userMoves}}</p>
 		</div>
 	{% endif %}
 
