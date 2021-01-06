@@ -8,7 +8,7 @@ from django.http import JsonResponse
 from django.conf import settings
 from django.urls import reverse
 from .models import Game, User
-from game.forms import LoginForm, CreateForm, ProfileForm, ResetForm
+from game.forms import LoginForm, CreateForm, ProfileForm, ResetForm, FeedbackForm
 
 def login(request):
 	if request.method == 'POST':
@@ -82,11 +82,20 @@ def tutorial(request):
 
 @login_required
 def cash_out(request):
-	return render(request, "cash_out.html")
+	user = request.user
+	return render(request, "cash_out.html", {"user": user})
 
 @login_required
 def feedback(request):
-	return render(request, "feedback.html")
+	if request.method == 'POST':
+		form = FeedbackForm(request.POST)
+		if form.is_valid():
+			request.user.feedback = request.POST.get('feedback')
+			request.user.save()
+			return redirect('home')
+	else:
+		form = FeedbackForm()
+	return render(request, "feedback.html", {'form': form})
 
 @login_required
 def consent_signed(request):

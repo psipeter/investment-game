@@ -2,14 +2,14 @@
 <html lang="en">
 
 <head>
-	<title>reset</title>
+	<title>Password Reset</title>
 	{% load static %}
-	<link rel="stylesheet" href="{% static 'reset_form.css' %}">
+	<link rel="stylesheet" href="{% static 'reset.css' %}">
 	<meta charset="utf-8">
 </head>
 
 <body>
-	<h1>Enter MTurk ID</h1>
+	<h1>Password Reset</h1>
 	<form action="" method="post">
 		{% csrf_token %}
 		{{ form.as_p }}

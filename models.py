@@ -263,6 +263,9 @@ class User(AbstractUser):
 	altruism = models.IntegerField(
 		validators=[MinValueValidator(1), MaxValueValidator(10)],
 		null=True, blank=True)
+	# feedback
+	feedback = models.CharField(
+		max_length=4200, null=True, blank=True)
 
 	def setCurrentGame(self, currentGame):
 		self.currentGame = currentGame

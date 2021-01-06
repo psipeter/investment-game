@@ -4,11 +4,10 @@ html {
 	background-color: #C7D3E0;
 }
 
-h1 {
-	margin: 0;
-	padding: 20px 0;
-	color: #00539F;
-	font-size: 32px;
+p,h3 {
 	text-align: center;
-	text-shadow: 1px 1px 1px black;
+}
+
+.code {
+	color: red;
 }

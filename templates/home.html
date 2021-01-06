@@ -71,22 +71,22 @@
 			<p>Fill out <a href="{% url 'survey' %}">Survey</a></p>
 			<p>Complete <a href="{% url 'tutorial' %}">Tutorial</a></p>
 			<div class="games">
-				<p class="gameL">Play required games ({{user.requiredGames}}/3)</p>
+				<p>Play required games ({{user.requiredGames}}/3)</p>
 				{% if user.doneTutorial and not user.doneRequiredGames %}
 					{% if user.currentGame %}
-						<p class="gameR"><a href="{% url 'continue' %}">Continue Game</a></p>
+						<p><a href="{% url 'continue' %}">Continue Game</a></p>
 					{% else %}
-						<p class="gameR"><a href="{% url 'game' %}">Start Game</a></p>
+						<p><a href="{% url 'game' %}">Start Game</a></p>
 					{% endif %}
 				{% endif %}
 			</div>
 			<div class="games">
-				<p class="gameL">Play bonus games ({{user.bonusGames}}/60)</p>
+				<p>Play bonus games ({{user.bonusGames}}/60)</p>
 				{% if user.doneTutorial and user.doneRequiredGames and not user.doneBonusGames %}
 					{% if user.currentGame %}
-						<p class="gameR"><a href="{% url 'continue' %}">Continue Game</a></p>
+						<p><a href="{% url 'continue' %}">Continue Game</a></p>
 					{% else %}
-						<p class="gameR"><a href="{% url 'game' %}">Start Game</a></p>
+						<p><a href="{% url 'game' %}">Start Game</a></p>
 					{% endif %}
 				{% endif %}
 			</div>
@@ -102,5 +102,4 @@
 			{% endif %}
 		</div>
 
-	<!-- <div class="bottombar"></div> -->
 </body>

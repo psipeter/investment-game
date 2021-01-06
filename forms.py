@@ -5,6 +5,15 @@ from django.forms.widgets import NumberInput
 from django.core.validators import MaxValueValidator, MinValueValidator
 from . import models
 
+class FeedbackForm(forms.Form):
+	feedback = forms.CharField(
+		max_length=4200,
+		label=None,
+		widget=forms.Textarea(attrs={
+			'rows': 4, 'cols': 40,
+			'placeholder': "Your feedback here...",
+			}))
+
 class LoginForm(forms.Form):
 	username = forms.CharField(label="MTurk ID")
 	password = forms.CharField(label='Password', widget=forms.PasswordInput)
@@ -23,6 +32,8 @@ class CreateForm(UserCreationForm):
 	username = forms.CharField(label="MTurk ID")
 	password1 = forms.CharField(label='Enter password', widget=forms.PasswordInput)
 	password2 = forms.CharField(label='Confirm password', widget=forms.PasswordInput)
+	password1.widget.attrs.update({'autocomplete':'password'})	
+	password2.widget.attrs.update({'autocomplete':'password'})	
 	class Meta:
 		model = models.User
 		fields = ('username', 'password1', 'password2')
@@ -33,6 +44,8 @@ class ResetForm(forms.Form):
 	username = forms.CharField(label="MTurk ID")
 	password1 = forms.CharField(label='New password', widget=forms.PasswordInput)
 	password2 = forms.CharField(label='Confirm new password', widget=forms.PasswordInput)
+	password1.widget.attrs.update({'autocomplete':'password'})	
+	password2.widget.attrs.update({'autocomplete':'password'})	
 	def clean_username(self):
 		username = self.cleaned_data['username']
 		if models.User.objects.filter(username=username).exists():

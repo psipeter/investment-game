@@ -11,13 +11,13 @@
 <body>
 	<h1>Investment Game Webapp</h1>
 
-	<form id="loginForm "method="post" action="{% url 'login' %}">
+	<form id="loginForm "method="post">
 		{% csrf_token %}
 		<table>
 			<tr><td>{{ form.username }}</td></tr>
 			<tr><td>{{ form.password }}</td></tr>
 		</table>
-		<input type="submit" value="Login" />
+		<input hidden id="submitButton" type="submit" value="log" />
 		<input type="hidden" name="next" value="{{ next }}" />
 	</form>
 
@@ -25,16 +25,17 @@
 		<p class="center">MTurk ID not found</p>
 	{% elif form.errors.password %}
 		<p class="center">Password incorrect</p>
-	{% else %}
 	{% endif %}
 	{% if next %}
 		<p class="center">Please login to see this page.</p>
 	{% endif %}
 
-	<div class="spaced">
-		<button id="reset">Forgot your password?</button>
+	<div class="login-btn">
+		<button id="login"> <label for="submitButton" tabindex="0">Login</label></button>
 	</div>
-	<div class="spaced">
+
+	<div class="other-btn">
+		<button id="reset">Forgot your password?</button>
 		<button id="register">Sign up</button>
 	</div>
 
