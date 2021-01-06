@@ -6,18 +6,93 @@ $(function() {  //on page load
     let turnTime = 1000;
     let startTime = performance.now();
     let endTime = performance.now();
+    let userMoves = [];
+    let agentMoves = [];
+    let userMovesMax = [];
+    let agentMovesMax = [];
     if (userRole == "A") {
-        maxUser = capital;
+        maxUser = Number(capital);
+        userMovesMax.push(maxUser);
         maxAgent = 0;  // updated after user moves
     }
     else {
-        maxAgent = capital;
+        maxAgent = Number(capital);
         maxUser = initialAgentMove*matchFactor;  // updated after agent moves
+        // agentMoves.push(initialAgentMove);
+        // agentMovesMax.push(maxAgent);
+        // userMovesMax.push(maxUser);
     }
 
     // Hide final page content
     $("#end").hide();
     $(".finalScore").hide();
+
+    // Populate the move table
+    function createTable() {
+        console.log("user", userMovesMax);
+        console.log("agent", agentMovesMax);
+        let table = $('<table>').addClass('table');
+        table.attr("id", "table");
+        let headrow = $('<tr>');
+        headrow.attr("id", 'headrow');
+        let header = $('<th>');
+        header.text("action");
+        header.attr("id", "action");
+        headrow.append(header);
+        let nCols = Math.max(userMoves.length, agentMoves.length);
+        for (a=0; a<nCols; a++){
+            let header = $('<th>');
+            header.text("turn "+a);
+            headrow.append(header);          
+        }
+        table.append(headrow);
+        for (p=0; p<2; p++) {  // two players
+            for (i=0; i<2; i++) {  // two rows per player
+                let row = $('<tr>').addClass('row');
+                let headtext;
+                let color1;
+                let color2;
+                if (p==0 && i==0) {
+                    if (userRole=="A") {headtext="You kept"; row.addClass('green');}
+                    else {headtext="They kept"; row.addClass('red');}}
+                if (p==0 && i==1) {
+                    if (userRole=="A") {headtext="You gave"; row.addClass('black');}
+                    else {headtext="They gave"; row.addClass('black');}}
+                if (p==1 && i==0) {
+                    if (userRole=="A") {headtext="They kept"; row.addClass('red');}
+                    else {headtext="You kept"; row.addClass('green');}}
+                if (p==1 && i==1) {
+                    if (userRole=="A") {headtext="They gave"; row.addClass('green');}
+                    else {headtext="You gave"; row.addClass('red');}}
+                let headcolumn = $('<td>');
+                headcolumn.attr("id", 'headcolumn');
+                headcolumn.text(headtext);
+                row.append(headcolumn);
+                let nCols;
+                if (p==0 && userRole=="A") {nCols=userMoves.length;}
+                if (p==0 && userRole=="B") {nCols=agentMoves.length;}
+                if (p==1 && userRole=="A") {nCols=agentMoves.length;}
+                if (p==1 && userRole=="B") {nCols=userMoves.length;}
+                for (j=0; j<nCols; j++) {
+                    let column = $('<td>');
+                    let max;
+                    let move;
+                    if (p==0 && userRole=="A") {max=userMovesMax[j]; move=userMoves[j];}
+                    if (p==0 && userRole=="B") {max=agentMovesMax[j]; move=agentMoves[j];}
+                    if (p==1 && userRole=="A") {max=agentMovesMax[j]; move=agentMoves[j];}
+                    if (p==1 && userRole=="B") {max=userMovesMax[j]; move=userMoves[j];}
+                    column.addClass('column');
+                    column.attr("id", "r"+i+"c"+j);
+                    if (i==0) {column.text(max-move);}
+                    else {column.text(move);}
+                    row.append(column);
+                }
+                table.append(row);
+            }
+        }
+        $("#table").replaceWith(table);
+    }
+    // createTable();  // call once to add element
 
     // Create the slider
     $("#form").slider({
@@ -78,10 +153,21 @@ $(function() {  //on page load
     }
 
     function animateAgent(agentMove, data=null) {
+        if (userRole=="A"){
+            maxUser = Number(capital);
+            userMovesMax.push(maxUser);
+        }
+        else {
+            maxUser = matchFactor*agentMove;
+            userMovesMax.push(maxUser);
+            agentMovesMax.push(Number(capital));
+        }
         constrainSliderAgent(agentMove); // takes turnTime
         // prepare DOM for user's next move
         setTimeout(function() {
             $("#agentMoves").text($("#agentMoves").text()+agentMove+",")
+            agentMoves.push(agentMove);
+            createTable();
             $("#submit").show();
             $("#whoseMove").replaceWith("<p id='whoseMove'>Your Move</p>");
             constrainSliderUser();
@@ -93,13 +179,17 @@ $(function() {  //on page load
     // Update models and DOM when "send" button is pressed
     function getUserMove() {
         let userMove = $("#form").slider("option", "value");
+        let move;
         if (userRole == "A") {
             maxAgent = userMove*matchFactor // update global
-            return userMove;
+            agentMovesMax.push(maxAgent);
+            move = userMove;
         }
         else {
-            return maxUser - userMove; // RTL
+            move = maxUser - userMove; // RTL
         }
+        userMoves.push(move);
+        return move;
     }
 
     // called when user submits a move
@@ -108,8 +198,9 @@ $(function() {  //on page load
         let userTime = (endTime-startTime);
         let userMove = getUserMove();
         $("#userMoves").text($("#userMoves").text()+userMove+",")
+        createTable();
         $("#submit").hide();
-        $("#whoseMove").replaceWith("<p id='whoseMove'>Opponent Move</p>");
+        $("#whoseMove").replaceWith("<p id='whoseMove'>Their Move</p>");
         let form = $("#form");
         let moveData = $('<input type="hidden" name="userMove"/>').val(userMove);
         let timeData = $('<input type="hidden" name="userTime"/>').val(userTime);
@@ -123,14 +214,13 @@ $(function() {  //on page load
             dataType: 'json',
             success: function (data) {
                 let agentMove = data.agentMove;
-                let complete = data.complete
+                let complete = data.complete;
                 if (complete) {
                     // animate agent's final choice, includes delayed gameComplete
                     if (userRole == "A") {animateAgent(agentMove, data);}
                     else {gameComplete(data);}
                 }
                 else {
-                    if (userRole == "B") {maxUser = matchFactor*agentMove;}
                     animateAgent(agentMove);
                 }
             }
@@ -165,7 +255,7 @@ $(function() {  //on page load
 
     // animate agent's first choice
     if (userRole == "B") {
-        $("#whoseMove").replaceWith("<p id='whoseMove'>Opponent Move</p>");
+        $("#whoseMove").replaceWith("<p id='whoseMove'>Their Move</p>");
         animateAgent(initialAgentMove);
     }
 

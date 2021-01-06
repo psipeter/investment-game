@@ -43,21 +43,12 @@
 				<p class="right" id="agentReward"></p>
 			</div>
 		</div>
-		<div class="leftright">
-			<p>Moves</p>
-			<p>Moves</p>
-		</div>
-		<div class="leftright">
-			<p id="userMoves">{{game.userMoves}}</p>
-			<p id="agentMoves">{{game.agentMoves}}</p>
-		</div>
+		<div id="moveTable"><table id="table"></table></div>
 
 	{% else %}
 		<div class="grid">
 			<h2 id="playerA" class="leftPlayer">{{game.agent.agentType}}</h2>
-			<h2 id="playerB" class="rightPlayer">
-				{{user.userName}}
-			</h2>
+			<h2 id="playerB" class="rightPlayer">{{user.username}}</h2>
 		</div>
 		<div class="finalScore leftright">
 			<h3>Final Score:</h3>
@@ -77,14 +68,7 @@
 				<p class="right" id="userReward"></p>
 			</div>
 		</div>
-		<div class="leftright">
-			<p>Moves</p>
-			<p>Moves</p>
-		</div>
-		<div class="leftright">
-			<p id="agentMoves">{{game.agentMoves}}</p>
-			<p id="userMoves">{{game.userMoves}}</p>
-		</div>
+		<div id="moveTable"><table id="table"></table></div>
 	{% endif %}
 
 	<div hidden id='end'>

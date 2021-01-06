@@ -135,7 +135,7 @@ class Game(models.Model):
 		self.user = user
 		self.seed = np.random.randint(1e6)
 		np.random.seed(self.seed)  # set random number seed
-		if np.random.rand() > 0:
+		if np.random.rand() > 1:
 			self.userRole = "A"
 			self.agentRole = "B"
 		else:

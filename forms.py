@@ -24,9 +24,6 @@ class LoginForm(forms.Form):
 	class Meta:
 		model = models.User
 		fields = ('username', 'password')
-		# labels = {'username': None, 'password': None}
-		# help_texts = {'username': None, 'password': None}
-
 
 class CreateForm(UserCreationForm):
 	username = forms.CharField(label="MTurk ID")
