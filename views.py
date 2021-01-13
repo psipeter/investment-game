@@ -179,6 +179,9 @@ def updateGame(request):
 	if game.complete:
 		request.user.currentGame = None
 		request.user.save()
+		# move learning elsewhere
+		if game.complete and game.agent.learn:
+			game.agent.learn(game)
 		data['complete'] = True
 	else:		
 		data['complete'] = False

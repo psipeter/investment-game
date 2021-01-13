@@ -9,12 +9,13 @@ import numpy as np
 import random
 import pickle
 
-from .agents2 import *
-from .utils2 import *
+from .agents import *
+from .utils import *
 
 
-popA = ['Greedy']#, 'TitForTat-A']
-popB = ['Greedy']#, 'TitForTat-B']
+popA = ['Bandit']
+popB = ['TitForTat']
+learn = True
 
 class Blob(models.Model):
 	name = models.CharField(max_length=100, blank=True, null=True, default=str)
@@ -25,11 +26,18 @@ class Agent(models.Model):
 	uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, help_text="Unique agent ID")
 	name = models.CharField(max_length=100, blank=True, null=True, default=str)
 	created = models.DateTimeField(auto_now_add=True)
-	# updateDB = models.BooleanField(default=False)
+	player = models.CharField(max_length=1, choices=(("A", "A"), ("B", "B")), null=True, blank=True)
+	learner = models.BooleanField(default=False)
 	blob = models.ForeignKey(Blob, on_delete=models.SET_NULL, null=True, blank=True)
 	obj = None  # will store de-pickled blob, the python agent class
 
-	def getObj(self, game):
+	def start(self, name, player, learner):
+		self.name = name
+		self.player = player
+		self.learner = learner
+		self.save()
+
+	def getObj(self, game, history):
 		name = self.name
 		if Blob.objects.filter(name=name).exists():
 			# print(f"loaded blob named {name}")
@@ -44,8 +52,16 @@ class Agent(models.Model):
 				self.obj = Greedy(None)
 			elif name=="Generous":
 				self.obj = Generous(None)
-			elif name=="TitForTat-A" or name=="TitForTat-B":
+			elif name=="Accumulator":
+				self.obj = Accumulator(None, game.capital)
+			elif name=="TitForTat":
 				self.obj = TitForTat(None, game.capital)
+			elif name=="Bandit":
+				actions = game.capital+1 if self.player == "A" else game.capital*game.match+1
+				self.obj = Bandit(None, actions)
+				if not self.learner:
+					file = f"Bandit_{self.player}_trained.npz"
+					self.obj.loadArchive(file=file)
 			# elif saved RL agent
 			# load saved npz file
 			else:
@@ -57,10 +73,25 @@ class Agent(models.Model):
 			self.save()			
 		self.obj.player = game.agentRole
 		self.obj.reset()
+		self.obj.replayHistory(history)
 		self.save()
 
-	class Meta:
-		pass
+	def learn(self, game):
+		history = {
+			'aGives': game.movesToArray("agent" if self.player=="A" else "user", "give"),
+			'aKeeps': game.movesToArray("agent" if self.player=="A" else "user", "keep"),
+			'bGives': game.movesToArray("user" if self.player=="A" else "agent", "give"),
+			'bKeeps': game.movesToArray("user" if self.player=="A" else "agent", "keep"),
+		}
+		history['aRewards'] = history['aKeeps'] + history['bGives']
+		history['bRewards'] = history['bKeeps']
+		# update matrices in python object
+		self.getObj(game, history)
+		self.obj.learn(history)
+		# update matricies in database
+		self.blob.blob = pickle.dumps(self.obj)
+		self.blob.save()
+		self.save()
 
 
 class Game(models.Model):
@@ -95,7 +126,7 @@ class Game(models.Model):
 			self.agentRole = "A"
 			name = popA[np.random.randint(len(popA))]
 		self.agent = Agent.objects.create()
-		self.agent.name = name
+		self.agent.start(name, self.agentRole, learn)
 		self.agent.save()
 		self.save()
 		if self.agentRole == "A":
@@ -122,7 +153,6 @@ class Game(models.Model):
 		self.save()
 
 	def goAgent(self, money):
-		self.agent.getObj(self)
 		A = "user" if self.userRole=="A" else "agent"
 		B = "agent" if self.userRole=="A" else "user"
 		history = {
@@ -131,6 +161,7 @@ class Game(models.Model):
 			'bGives': self.movesToArray(B, "give"),
 			'bKeeps': self.movesToArray(B, "keep"),
 		}
+		self.agent.getObj(self, history)
 		agentGive, agentKeep = self.agent.obj.act(money, history)
 		self.agentGives += f"{agentGive:d},"
 		self.agentKeeps += f"{agentKeep:d},"
@@ -142,6 +173,7 @@ class Game(models.Model):
 		agentGives = self.movesToArray("agent", "give")
 		if len(userGives) == self.rounds and len(agentGives) == self.rounds:
 			self.complete = True
+
 		if len(userGives) > self.rounds or len(agentGives) > self.rounds:
 			raise Exception("Too many moves taken")
 
@@ -232,6 +264,3 @@ class User(AbstractUser):
 		self.doneRequiredGames = True if self.gamesPlayed >= 3 else False
 		self.doneBonusGames = True if self.gamesPlayed >= 63 else False
 		self.save()
-
-	class Meta:
-		pass

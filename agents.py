@@ -2,8 +2,23 @@ import numpy as np
 from scipy.special import softmax
 import random
 
+class AgentBase():
+	def act(self, money, history):
+		pass
+	def getState(self, history, t):
+		pass
+	def update(self, history):
+		pass
+	def learn(self, history):
+		pass
+	def reset(self):
+		pass
+	def reduceExploration(self, i):
+		pass
+	def replayHistory(self, history):
+		pass
 
-class HardcodedAgent():
+class HardcodedAgent(AgentBase):
 	def act(self, money, history):
 		self.update(history)
 		if money == 0:
@@ -15,16 +30,8 @@ class HardcodedAgent():
 		give = int(np.clip(a, 0, money))
 		keep = int(money - give)
 		return give, keep
-	def update(self, history):
-		pass
-	def learn(self, history):
-		pass
-	def reset(self):
-		pass
-	def reduceExploration(self, i):
-		pass
 
-class QAgent():
+class QAgent(AgentBase):
 	def act(self, money, history):
 		state = self.getState(history, t=-1)
 		if money == 0:
@@ -95,14 +102,14 @@ class Greedy(HardcodedAgent):
 		self.state = np.random.normal(self.mean, self.std)
 
 class Accumulator(HardcodedAgent):
-	def __init__(self, player, capital, alpha=1e-1, epsilon=0.1, ID="Accumulator"):
+	def __init__(self, player, capital, alpha=2e-1, epsilon=0.1, ID="Accumulator"):
 		self.player = player
 		self.ID = ID
 		self.capital = capital
 		self.alpha = alpha
 		self.epsilon = epsilon
-		self.state = 1 if self.player=="A" else 0.5
-		self.maxGive = 1 if self.player=="A" else 0.5
+		self.state = 1.0 if self.player=="A" else 0.5
+		self.maxGive = 1.0 if self.player=="A" else 0.5
 	def update(self, history):
 		if len(history['aGives'])==0 or len(history['bGives'])==0:
 			return
@@ -110,7 +117,7 @@ class Accumulator(HardcodedAgent):
 			if history['bGives'][-1] > history['aGives'][-1]:
 				self.state += self.alpha
 			elif history['bGives'][-1] < history['aGives'][-1]:
-				self.state += self.alpha
+				self.state -= self.alpha
 			self.state = np.clip(self.state, 0, self.maxGive)
 		elif self.player == "B":
 			if history['aGives'][-1] == self.capital:
@@ -120,9 +127,19 @@ class Accumulator(HardcodedAgent):
 			self.state = np.clip(self.state, 0, self.maxGive)
 		else:
 			raise "player not set"
+	def replayHistory(self, history):
+		steps = min(len(history['aGives']), len(history['bGives']))
+		for t in range(steps):
+			historySlice = {
+				'aGives': history['aGives'][:t+1],
+				'aKeeps': history['aKeeps'][:t+1],
+				'bGives': history['bGives'][:t+1],
+				'bKeeps': history['bKeeps'][:t+1],
+			}
+			self.update(historySlice)
 	def reset(self):
-		self.state = 1 if self.player=="A" else 0.5
-		self.maxGive = 1 if self.player=="A" else 0.5
+		self.state = 1.0 if self.player=="A" else 0.5
+		self.maxGive = 1.0 if self.player=="A" else 0.5
 
 class TitForTat(HardcodedAgent):
 	def __init__(self, player, capital, epsilon=0.1, ID="TitForTat"):
@@ -152,10 +169,20 @@ class TitForTat(HardcodedAgent):
 			# happy if A gave 100% of capital
 			self.state = 0.5 * history['aGives'][-1] / self.capital
 			self.state = np.clip(self.state, 0, 0.5)
+	def replayHistory(self, history):
+		steps = min(len(history['aGives']), len(history['bGives']))
+		for t in range(steps):
+			historySlice = {
+				'aGives': history['aGives'][:t+1],
+				'aKeeps': history['aKeeps'][:t+1],
+				'bGives': history['bGives'][:t+1],
+				'bKeeps': history['bKeeps'][:t+1],
+			}
+			self.update(historySlice)
 	def reset(self):
 		self.state = 1 if self.player=="A" else 0.5
 
-class Bandit():
+class Bandit(AgentBase):
 	def __init__(self, player, actions, epsilon=0.1, temp=0, ID="Bandit"):
 		self.player = player
 		self.ID = ID
@@ -189,8 +216,12 @@ class Bandit():
 			self.Q[a] = (r + self.nA[a]*self.Q[a]) / (self.nA[a]+1)
 	def reduceExploration(self, i, epsilon0=10.0):
 		self.epsilon = epsilon0 / (i+1)
-	def reset(self):
-		pass
+	def saveArchive(self, file):
+		np.savez(file, Q=self.Q, nA=self.nA)
+	def loadArchive(self, file):
+		data = np.load(file)
+		self.Q = data['Q']
+		self.nA = data['nA']
 
 class QLearn(QAgent):
 	def __init__(self, player, actions, states, alpha=1e-2, gamma=0.9, epsilon=0.1, temp=0, ID="QLearn"):

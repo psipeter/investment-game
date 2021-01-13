@@ -29,14 +29,15 @@ B = ModelBased("B", capital*match+1, states=2)
 
 
 rounds = 100
-agent =	QLearn("B", capital*match+1, states=2)
 role = "A"
+agent =	Bandit(role, capital+1)
+# agent.loadArchive(file="data/Bandit_A_trained.npz")
 pop = [
 	Generous(None),
 	TitForTat(None, capital),
 ]
-# df = OneVsMany(agent, pop, role, capital, match, turns, rounds, seed)
-
+df = OneVsMany(agent, pop, role, capital, match, turns, rounds, seed)
+# agent.saveArchive(file="data/Bandit_A_trained.npz")
 
 rounds = 10
 popA = [
@@ -59,4 +60,4 @@ popB = [
 	Hill("B", capital*match+1, states=2),
 	ModelBased("B", capital*match+1, states=2),
 ]
-df = ManyVsMany(popA, popB, capital, match, turns, rounds, seed)
+# df = ManyVsMany(popA, popB, capital, match, turns, rounds, seed)

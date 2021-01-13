@@ -18,7 +18,7 @@ class Game(admin.ModelAdmin):
 
 @admin.register(Agent)
 class Agent(admin.ModelAdmin):
-	list_display = ('name','created')
+	list_display = ('name','player','learner','created')
 
 @admin.register(User)
 class User(UserAdmin):
