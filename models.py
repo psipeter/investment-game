@@ -9,103 +9,55 @@ import numpy as np
 import random
 import pickle
 
-from .agents import *
-from .utils import *
+from .agents2 import *
+from .utils2 import *
 
 
-# AGENT_POOL = ['Greedy', 'Generous', 'Accumulator', 'TitForTat', 'FMQ', 'WoLFPHC', 'PGAAPP']
-AGENT_POOL = ['WoLFPHC']
+popA = ['Greedy']#, 'TitForTat-A']
+popB = ['Greedy']#, 'TitForTat-B']
+
+class Blob(models.Model):
+	name = models.CharField(max_length=100, blank=True, null=True, default=str)
+	blob = models.BinaryField(null=True)  # for agent class
+
 
 class Agent(models.Model):
 	uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, help_text="Unique agent ID")
-	agentType = models.CharField(max_length=100, blank=True, null=True, default=str)
-	agentBlob = models.BinaryField(null=True)  # for agent class
+	name = models.CharField(max_length=100, blank=True, null=True, default=str)
 	created = models.DateTimeField(auto_now_add=True)
-	updateDB = models.BooleanField(default=False)
-	# rlBlob = models.BinaryField(null=True)  # for RL matrices
-	agentObj = None
-	# rlObj = None
+	# updateDB = models.BooleanField(default=False)
+	blob = models.ForeignKey(Blob, on_delete=models.SET_NULL, null=True, blank=True)
+	obj = None  # will store de-pickled blob, the python agent class
 
-	def start(self, agentType, env, player, learning=False): 
-		self.agentType = agentType
-		epsilon = 0.01 if learning else 0
-		temp = 10 if learning else 0
-		decay = 0.95 if learning else 0
-		if self.agentType == 'Greedy':
-			self.agentObj = Gaussian(mean=0.0, std=0.1, ID="Greedy")
-		elif self.agentType == 'Generous':
-			self.agentObj = Gaussian(mean=1.0, std=0.1, ID="Generous")
-		elif self.agentType == 'Accumulator':
-			self.agentObj = Accumulator(env)
-			self.updateDB = True
-		elif self.agentType == 'TitForTat':
-			self.agentObj = TitForTat(env)
-			self.updateDB = True
-		elif self.agentType == "FMQ":
-			self.agentObj = FMQ(env, temp=temp, decay=temp, epsilon=epsilon)
-		elif self.agentType == "WoLFPHC":
-			self.agentObj = WoLFPHC(env, temp=temp, decay=decay, epsilon=epsilon)
-		elif self.agentType == "PGAAPP":
-			self.agentObj = PGAAPP(env, temp=temp, decay=decay, epsilon=epsilon)
-		elif self.agentType == "ModelBased":
-			self.agentObj = ModelBased(env, decay=decay, epsilon=epsilon)
+	def getObj(self, game):
+		name = self.name
+		if Blob.objects.filter(name=name).exists():
+			# print(f"loaded blob named {name}")
+			self.blob = Blob.objects.get(name=name)
+			self.save()
+			self.obj = pickle.loads(self.blob.blob)
+			self.save()
 		else:
-			raise Exception('%s not a valid agentType'%agentType)
-		self.agentObj.learning = learning
-		self.agentObj.setPlayer(player)
-		self.agentObj.load(prefix="game/")  # from disk
-		self.saveObj()
-		# self.updateRL(fromDisk=True)
-
-	def saveObj(self):
-		self.agentBlob = pickle.dumps(self.agentObj)
+			# create a new object and blob
+			# print(f"creating new blob named {name}")
+			if name=='Greedy':
+				self.obj = Greedy(None)
+			elif name=="Generous":
+				self.obj = Generous(None)
+			elif name=="TitForTat-A" or name=="TitForTat-B":
+				self.obj = TitForTat(None, game.capital)
+			# elif saved RL agent
+			# load saved npz file
+			else:
+				raise Exception(f'{name} is not a valid agent class')
+			self.blob = Blob.objects.create()
+			self.blob.name = name
+			self.blob.blob = pickle.dumps(self.obj)
+			self.blob.save()
+			self.save()			
+		self.obj.player = game.agentRole
+		self.obj.reset()
 		self.save()
-
-	def loadObj(self):
-		self.agentObj = pickle.loads(self.agentBlob)
-		self.save()
-
-	# def saveRL(self, toDisk=False):
-	# 	if toDisk:
-	# 		self.agentObj.save(prefix="game/")
-	# 	self.rlBlob = pickle.dumps(self.rlObj)
-	# 	self.save()
-
-	# def loadRL(self):
-	# 	self.rlObj = pickle.loads(self.rlBlob)
-	# 	self.save()
-
-	def updateAgent(self, game):
-		# print('update 1', self.agentObj.state)
-		self.loadObj()
-		# self.loadRL()
-		player = game.agentRole
-		myActions = game.getMoves(game.agentMoves)
-		otherActions = game.getMoves(game.userMoves)
-		if player == "A":
-			received = game.capital
-			gave = myActions
-		else:
-			received = game.matchFactor*otherActions[:-1]
-			gave = myActions
-		rewards = received - gave
-		basicDict = {
-			'player': player,
-			'myActions': myActions,
-			'otherActions': otherActions,
-			'rewards': rewards,
-		}
-		# self.agentObj.setData(basicDict, self.rlObj)
-		self.agentObj.setData(basicDict)
-		self.agentObj.update()  # includes learning
-		if self.updateDB:
-			self.saveObj()
-
-	# def updateRL(self, fromDisk=False):
-	# 	if fromDisk:
-	# 		self.agentObj.load(prefix="game/")
-	# 	self.rlObj = self.agentObj.getData()
-	# 	self.saveRL()
 
 	class Meta:
 		pass
@@ -116,107 +68,112 @@ class Game(models.Model):
 	date = models.DateTimeField(auto_now_add=True)
 	user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)
 	agent = models.ForeignKey(Agent, on_delete=models.CASCADE, null=True, blank=True)
-	userMove = models.IntegerField(null=True, blank=True)
-	agentMove = models.IntegerField(null=True, blank=True)
-	userMoves = models.CharField(max_length=300, blank=True, null=True, default=str)
+	userGives = models.CharField(max_length=300, blank=True, null=True, default=str)
+	userKeeps = models.CharField(max_length=300, blank=True, null=True, default=str)
 	userTimes = models.CharField(max_length=300, blank=True, null=True, default=str)
-	agentMoves = models.CharField(max_length=300, blank=True, null=True, default=str)
+	agentGives = models.CharField(max_length=300, blank=True, null=True, default=str)
+	agentKeeps = models.CharField(max_length=300, blank=True, null=True, default=str)
 	userRole = models.CharField(max_length=1, choices=(("A", "A"), ("B", "B")), null=True, blank=True)
 	agentRole = models.CharField(max_length=1, choices=(("A", "A"), ("B", "B")), null=True, blank=True)
 	userScore = models.IntegerField(default=0, null=True, blank=True)
 	agentScore = models.IntegerField(default=0, null=True, blank=True)
 	complete = models.BooleanField(default=False)
-	nIter = models.IntegerField(default=5)
+	rounds = models.IntegerField(default=5)
 	capital = models.IntegerField(default=10)
-	matchFactor = models.FloatField(default=3)
-	seed = models.IntegerField(default=0) 
-
+	match = models.FloatField(default=3)
+	seed = models.IntegerField(default=0)
 	def start(self, user):
 		self.user = user
 		self.seed = np.random.randint(1e6)
 		np.random.seed(self.seed)  # set random number seed
-		if np.random.rand() > 1:
+		if np.random.rand() > 0.5:
 			self.userRole = "A"
 			self.agentRole = "B"
+			name = popB[np.random.randint(len(popB))]
 		else:
 			self.userRole = "B"
 			self.agentRole = "A"
-		agentType = AGENT_POOL[np.random.randint(len(AGENT_POOL))]
-		env = Env(self.nIter, self.capital, self.matchFactor)
+			name = popA[np.random.randint(len(popA))]
 		self.agent = Agent.objects.create()
-		self.agent.start(agentType, env, self.agentRole)
+		self.agent.name = name
+		self.agent.save()
 		self.save()
 		if self.agentRole == "A":
-			invest = self.goAgent(self.capital)
-			self.setMoves("agent", invest)
-		self.user.setCurrentGame(self)
+			self.goAgent(self.capital)
+		self.user.currentGame = self
+		self.user.save()
 		self.save()
 
-	def step(self, userMove, userTime):
-		self.setMoves("user", userMove)
-		self.setTimes(userTime)
+	def step(self, userGive, userKeep, userTime):
+		self.goHuman(userGive, userKeep, userTime)
 		if self.userRole == "A":
-			invest = int(self.userMove)
-			matched = self.matchFactor*invest
-			reply = self.goAgent(matched)
-			self.userScore += int(self.capital-invest+reply)
-			self.agentScore += int(matched-reply)
-			self.setMoves("agent", reply)
-		else:
-			invest = int(self.agentMove)
-			matched = self.matchFactor*invest
-			reply = int(self.userMove)
-			self.agentScore += int(self.capital-invest+reply)
-			self.userScore += int(matched-reply)
-			self.getComplete()
-			if not self.getComplete():
-				invest = self.goAgent(self.capital)
-				self.setMoves("agent", invest)
-		self.getComplete()
+			invest = self.movesToArray("user", "give")[-1]
+			self.goAgent(self.match*invest)
+		elif not self.complete:
+			self.goAgent(self.capital)
+		self.save()
+		self.computeScores()
+
+	def goHuman(self, userGive, userKeep, userTime):
+		self.userGives += f"{userGive:d},"
+		self.userKeeps += f"{userKeep:d},"
+		self.userTimes += f"{userTime:.2f},"
+		self.checkComplete()
 		self.save()
 
 	def goAgent(self, money):
-		self.agent.updateAgent(self)
-		# self.agent.updateRL()
-		# print('QA', self.agent.agentObj.QA)
-		agentMove = int(self.agent.agentObj.action(money))
-		return agentMove
-
-	def setMoves(self, player, move):
-		if player == "user":
-			self.userMove = move
-			self.userMoves += "%s,"%move
-		else:
-			self.agentMove = move
-			self.agentMoves += "%s,"%move
+		self.agent.getObj(self)
+		A = "user" if self.userRole=="A" else "agent"
+		B = "agent" if self.userRole=="A" else "user"
+		history = {
+			'aGives': self.movesToArray(A, "give"),
+			'aKeeps': self.movesToArray(A, "keep"),
+			'bGives': self.movesToArray(B, "give"),
+			'bKeeps': self.movesToArray(B, "keep"),
+		}
+		agentGive, agentKeep = self.agent.obj.act(money, history)
+		self.agentGives += f"{agentGive:d},"
+		self.agentKeeps += f"{agentKeep:d},"
+		self.checkComplete()
 		self.save()
 
-	def setTimes(self, time):
-		time = int(time.split(".")[0])  # remove digits smaller than ms
-		self.userTimes += "%s,"%(time/1000)
-		self.save()
-
-	def getMoves(self, string):
-		return np.array(string.split(',')[:-1]).astype(np.int)
-
-	def getComplete(self):
-		userMoves = np.array(self.userMoves.split(',')[:-1]).astype(np.int)
-		agentMoves = np.array(self.agentMoves.split(',')[:-1]).astype(np.int)
-		if len(userMoves) == self.nIter and len(agentMoves) == self.nIter:
+	def checkComplete(self):
+		userGives = self.movesToArray("user", "give")
+		agentGives = self.movesToArray("agent", "give")
+		if len(userGives) == self.rounds and len(agentGives) == self.rounds:
 			self.complete = True
-		if len(userMoves) > self.nIter or len(agentMoves) > self.nIter:
+		if len(userGives) > self.rounds or len(agentGives) > self.rounds:
 			raise Exception("Too many moves taken")
-		return self.complete
 
-	class Meta:
-		pass
+	def computeScores(self):
+		userGives = self.movesToArray("user", "give")
+		userKeeps = self.movesToArray("user", "keep")
+		agentGives = self.movesToArray("agent", "give")
+		agentKeeps = self.movesToArray("agent", "keep")
+		if self.userRole == "A":
+			self.userScore = np.sum(userKeeps) + np.sum(agentGives)
+			self.agentScore = np.sum(agentKeeps)
+		else:
+			self.agentScore = np.sum(agentKeeps) + np.sum(userGives)
+			self.userScore = np.sum(userKeeps)
+		self.save()
 
+	def movesToArray(self, player, action):
+		if player == "user":
+			if action == "give":
+				return np.array(self.userGives.split(',')[:-1]).astype(np.int)
+			else:
+				return np.array(self.userKeeps.split(',')[:-1]).astype(np.int)
+		else:
+			if action == "give":
+				return np.array(self.agentGives.split(',')[:-1]).astype(np.int)
+			else:
+				return np.array(self.agentKeeps.split(',')[:-1]).astype(np.int)
 
 class User(AbstractUser):
 	# Status
 	currentGame = models.ForeignKey(Game, on_delete=models.SET_NULL, null=True, blank=True, related_name="currentGame")
-	requiredGames = models.IntegerField(default=0)
-	bonusGames = models.IntegerField(default=0)
+	gamesPlayed = models.IntegerField(default=0)
 	doneInformation = models.BooleanField(default=False)
 	doneConsent = models.BooleanField(default=False)
 	doneSurvey = models.BooleanField(default=False)
@@ -267,24 +224,13 @@ class User(AbstractUser):
 	feedback = models.CharField(
 		max_length=4200, null=True, blank=True)
 
-	def setCurrentGame(self, currentGame):
-		self.currentGame = currentGame
-		if self.requiredGames >= 3:
-			self.doneRequiredGames = True
-		if self.bonusGames >= 60:
-			self.doneBonusGames = True
-		self.save()
-
-	def finishGame(self):
-		self.currentGame = None
-		if not self.doneRequiredGames:
-			self.requiredGames += 1
-		else:
-			self.bonusGames += 1
-		if self.requiredGames >= 3:
-			self.doneRequiredGames = True
-		if self.bonusGames >= 60:
-			self.doneBonusGames = True
+	def checkRequirements(self):
+		# todo: improved checks for study info, consent, survey, tutorial
+		myGame = models.Q(user=self)
+		isDone = models.Q(complete=True)
+		self.gamesPlayed = Game.objects.filter(myGame and isDone).count()
+		self.doneRequiredGames = True if self.gamesPlayed >= 3 else False
+		self.doneBonusGames = True if self.gamesPlayed >= 63 else False
 		self.save()
 
 	class Meta:

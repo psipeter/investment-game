@@ -71,7 +71,7 @@
 			<p>Fill out <a href="{% url 'survey' %}">Survey</a></p>
 			<p>Complete <a href="{% url 'tutorial' %}">Tutorial</a></p>
 			<div class="games">
-				<p>Play required games ({{user.requiredGames}}/3)</p>
+				<p>Play required games ({{requiredGames}}/3)</p>
 				{% if user.doneTutorial and not user.doneRequiredGames %}
 					{% if user.currentGame %}
 						<p><a href="{% url 'continue' %}">Continue Game</a></p>
@@ -81,7 +81,7 @@
 				{% endif %}
 			</div>
 			<div class="games">
-				<p>Play bonus games ({{user.bonusGames}}/60)</p>
+				<p>Play bonus games ({{bonusGames}}/60)</p>
 				{% if user.doneTutorial and user.doneRequiredGames and not user.doneBonusGames %}
 					{% if user.currentGame %}
 						<p><a href="{% url 'continue' %}">Continue Game</a></p>

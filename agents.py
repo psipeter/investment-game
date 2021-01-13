@@ -2,636 +2,334 @@ import numpy as np
 from scipy.special import softmax
 import random
 
-class AgentBase():
-	def __init__(self):
-		self.ID = None
-		self.myActions = []
-		self.otherActions = []
-		self.rewards = []
-		self.nInvestor = 0
-		self.nReturner = 0
-		self.tournamentRewards = {}
-		self.tournamentActive = True
-		self.player = None
-		self.learning = True
-		self.state = 1
-		self.iter = 0
 
-	def update(self):
+class HardcodedAgent():
+	def act(self, money, history):
+		self.update(history)
+		if money == 0:
+			a = 0
+		elif np.random.rand() < self.epsilon:
+			a = np.random.randint(0, money+1)
+		else:
+			a = money * self.state
+		give = int(np.clip(a, 0, money))
+		keep = int(money - give)
+		return give, keep
+	def update(self, history):
 		pass
-
-	def tournamentUpdate(self, player, r):
-		if player == "A":
-			self.nInvestor += 1
-		if player == "B":
-			self.nReturner += 1
-		if r not in self.tournamentRewards:
-			self.tournamentRewards[r] = []
-		self.tournamentRewards[r].append(np.mean(self.rewards))
-		self.reset()
-
+	def learn(self, history):
+		pass
 	def reset(self):
-		self.myActions = []
-		self.otherActions = []
-		self.rewards = []
-		self.state = 1
+		pass
+	def reduceExploration(self, i):
+		pass
 
-	def fullReset(self):
-		self.reset()
-		self.iter = 0
-		# self.learning = True
+class QAgent():
+	def act(self, money, history):
+		state = self.getState(history, t=-1)
+		if money == 0:
+			a = 0
+		elif np.random.rand() < self.epsilon:
+			a = np.random.randint(0, money+1)
+		# elif self.temp > 0:
+		# 	probs = softmax(self.Q[state, :] / self.temp)
+		# 	a = np.where(np.cumsum(probs) >= np.random.rand())[0][0]
+		else:
+			if hasattr(self, 'pi'):
+				a = np.argmax(self.pi[state, :])
+			else:
+				a = np.argmax(self.Q[state, :])
+		give = int(np.clip(a, 0, money))
+		keep = int(money - give)
+		return give, keep
+	def getState(self, history, t):
+		if len(history['aGives'])==0 or len(history['bGives'])==0 or t==0:
+			return 0  # no history state
+		if self.player == "A":
+			myGives = history['aGives'][t]
+			myKeeps = history['aKeeps'][t]
+			otherGives = history['bGives'][t]
+			otherKeeps = history['bKeeps'][t]
+		else:
+			myGives = history['bGives'][t]
+			myKeeps = history['bKeeps'][t]
+			otherGives = history['aGives'][t]
+			otherKeeps = history['aKeeps'][t]
+		if otherGives==0 and otherKeeps==0:
+			return 1  # no information state
+		# ratio = otherGives / otherKeeps
+		ratio = otherGives / (otherGives + otherKeeps)
+		# map this ratio into a discrete state space of size Q
+		state = int(ratio * self.states)
+		assert 0 <= state <= self.states, "state outside limit"
+		return 2+state
+	def reduceExploration(self, i, epsilon0=10.0):
+		self.epsilon = epsilon0 / (i+1)
+	def reset(self):
+		pass
 
-	def setPlayer(self, player):
+
+
+
+
+class Generous(HardcodedAgent):
+	def __init__(self, player, mean=1.0, std=0.1, epsilon=0.1, ID="Generous"):
 		self.player = player
-
-	def save(self, prefix=""):
-		pass
-
-	def load(self, prefix=""):
-		pass
-
-	def setData(self, data):
-		self.setPlayer(data['player'])
-		self.myActions = data['myActions']
-		self.otherActions = data['otherActions']
-		self.rewards = data['rewards']
-
-	def getData(self):
-		return dict()
-
-
-''' NON-LEARNERS '''
-
-
-class Gaussian(AgentBase):
-	def __init__(self, mean, std=0.1, epsilon=0.01, ID="Gaussian"):
-		super().__init__()
 		self.ID = ID
 		self.mean = mean
 		self.std = std
 		self.epsilon = epsilon
+		self.state = 0
+	def update(self, history):
+		self.state = np.random.normal(self.mean, self.std)
 
-	def action(self, money):
-		if np.random.rand() < self.epsilon:
-			action = np.random.randint(0, money) if money > 0 else 0
-		else:
-			action = np.clip(int(money*np.random.normal(self.mean, self.std)), 0, money)
-		return action
-
-
-class Accumulator(AgentBase):
-	def __init__(self, env, maxReturn=0.5, alpha=2e-1, epsilon=0.01, ID="Accumulator"):
-		super().__init__()
+class Greedy(HardcodedAgent):
+	def __init__(self, player, mean=0.0, std=0.1, epsilon=0.1, ID="Greedy"):
+		self.player = player
 		self.ID = ID
-		self.capital = env.capital
-		self.maxReturn = maxReturn
+		self.mean = mean
+		self.std = std
+		self.epsilon = epsilon
+		self.state = 1
+	def update(self, history):
+		self.state = np.random.normal(self.mean, self.std)
+
+class Accumulator(HardcodedAgent):
+	def __init__(self, player, capital, alpha=1e-1, epsilon=0.1, ID="Accumulator"):
+		self.player = player
+		self.ID = ID
+		self.capital = capital
 		self.alpha = alpha
 		self.epsilon = epsilon
-
-	def action(self, money):
-		if np.random.rand() < self.epsilon:
-			action = np.random.randint(0, money) if money > 0 else 0
-		else:
-			action = np.clip(int(money*self.state), 0, money)
-		return action
-
-	def update(self):
-		if len(self.otherActions) == 0:
+		self.state = 1 if self.player=="A" else 0.5
+		self.maxGive = 1 if self.player=="A" else 0.5
+	def update(self, history):
+		if len(history['aGives'])==0 or len(history['bGives'])==0:
 			return
 		if self.player == "A":
-			if self.otherActions[-1] > self.myActions[-1]:
-				judgement = 1
-			elif self.otherActions[-1] == self.myActions[-1]:
-				judgement = 0
-			else:
-				judgement = -1
-			self.state += self.alpha * judgement
-			self.state = np.clip(self.state, 0, 1)
+			if history['bGives'][-1] > history['aGives'][-1]:
+				self.state += self.alpha
+			elif history['bGives'][-1] < history['aGives'][-1]:
+				self.state += self.alpha
+			self.state = np.clip(self.state, 0, self.maxGive)
 		elif self.player == "B":
-			if self.otherActions[-1] == self.capital:
-				judgement = 1
+			if history['aGives'][-1] == self.capital:
+				self.state += self.alpha
 			else:
-				judgement = -1
-			self.state += self.alpha * judgement
-			self.state = np.clip(self.state, 0, self.maxReturn)
-
-	def setPlayer(self, player, init=False):
-		self.player = player
-		if init:
-			self.state = 1 if self.player == "A" else 0.5
-
-	# def setData(self, data, rlData):
-	# 	super().setData(data)
-	# 	self.state = rlData['state']
-
-	# def getData(self):
-	# 	rlDict = {
-	# 		'state': self.state,
-	# 	}
-	# 	return rlDict
-
-
-class TitForTat(AgentBase):
-	def __init__(self, env, epsilon=0.01, strategy="Fair"):
-		super().__init__()
-		self.ID = "Tit-for-Tat" # +strategy
-		self.capital = env.capital
-		self.matchFactor = env.matchFactor
-		self.strategy = strategy
-		self.epsilon = epsilon
-
-	def action(self, money):
-		if np.random.rand() < self.epsilon:
-			action = np.random.randint(0, money) if money > 0 else 0
+				self.state -= self.alpha
+			self.state = np.clip(self.state, 0, self.maxGive)
 		else:
-			action = np.clip(int(money*self.state), 0, money)
-		return action
+			raise "player not set"
+	def reset(self):
+		self.state = 1 if self.player=="A" else 0.5
+		self.maxGive = 1 if self.player=="A" else 0.5
 
-	def update(self):
-		if len(self.otherActions) == 0:
+class TitForTat(HardcodedAgent):
+	def __init__(self, player, capital, epsilon=0.1, ID="TitForTat"):
+		self.player = player
+		self.ID = ID
+		self.capital = capital
+		self.epsilon = epsilon
+		self.state = 1 if self.player=="A" else 0.5
+	def update(self, history):
+		if len(history['aGives'])==0 or len(history['bGives'])==0:
 			return
 		if self.player == "A":
-			if self.myActions[-1] == 0:
-				self.state = 0  # stay greedy (still epsilon-random actions)
+			# if A gave nothing last turn:
+			if history['aGives'][-1] == 0:
+				# self.state = 0  # continue punishing
+				self.state = 0.1  # chance for redemption
 				# self.state = np.random.rand()  # random action
+			# if A gave something last turn
 			else:
-				if self.strategy == "Fair":
-					# happy if returner gave 50% of matched investment
-					self.state =  self.otherActions[-1] / (0.5*self.myActions[-1]*self.matchFactor)
-				elif self.strategy == "Gain":
-					# happy if return was greater than investment
-					self.state = self.otherActions[-1] / self.myActions[-1]
+				# happy if B gave more than B kept
+				if history['bKeeps'][-1] == 0:
+					self.state = 1  # avoid div by zero
+				else:
+					self.state =  history['bGives'][-1] / history['bKeeps'][-1]
 			self.state = np.clip(self.state, 0, 1)
 		elif self.player == "B":
-			self.state = self.otherActions[-1] / self.capital  # happy if investor gave 100% of capital
-			self.state = np.clip(self.state/2, 0, 0.5)
+			# happy if A gave 100% of capital
+			self.state = 0.5 * history['aGives'][-1] / self.capital
+			self.state = np.clip(self.state, 0, 0.5)
+	def reset(self):
+		self.state = 1 if self.player=="A" else 0.5
 
-	def setPlayer(self, player, init=False):
+class Bandit():
+	def __init__(self, player, actions, epsilon=0.1, temp=0, ID="Bandit"):
 		self.player = player
-		if init:
-			self.state = 1 if self.player == "A" else 0.5
-
-	# def setData(self, data, rlData):
-	# 	super().setData(data)
-	# 	self.state = rlData['state']
-
-	# def getData(self):
-	# 	rlDict = {
-	# 		'state': self.state,
-	# 	}
-	# 	return rlDict
-
-
-''' LEARNERS '''
-
-
-
-class FMQ(AgentBase):
-	def __init__(self, env, alpha=3e-2, temp=10, decay=0.95, epsilon=0.01, ID="FMQ"):
-		super().__init__()
 		self.ID = ID
 		self.epsilon = epsilon
-		self.capital = env.capital 
-		self.matchFactor = env.matchFactor
-		self.nActions = self.matchFactor*self.capital+1
-		self.QA = np.zeros((self.nActions))
-		self.rMaxA = np.zeros((self.nActions))
-		self.cMaxA = np.zeros((self.nActions))
-		self.cA = np.zeros((self.nActions))
-		self.QB = np.zeros((self.nActions))
-		self.rMaxB = np.zeros((self.nActions))
-		self.cMaxB = np.zeros((self.nActions))
-		self.cB = np.zeros((self.nActions))
-		self.decay = decay
-		self.temp = temp
-		self.alpha = alpha
-
-	def action(self, money):
-		temp = self.temp * self.decay**self.iter
-		Q = self.QA if self.player == "A" else self.QB
-		if np.random.rand() < self.epsilon:
-			action = np.random.randint(0, money) if money > 0 else 0
-		elif temp > 0:
-			probs = softmax(Q / temp)
-			action = np.where(np.cumsum(probs) >= np.random.rand())[0][0]
+		self.Q = np.zeros((actions))
+		self.nA = np.zeros((actions))
+	def act(self, money, history):
+		if money == 0:
+			a = 0
+		elif np.random.rand() < self.epsilon:
+			a = np.random.randint(0, money+1)
+		# elif self.temp > 0:
+		# 	probs = softmax(self.Q / self.temp)
+		# 	a = np.where(np.cumsum(probs) >= np.random.rand())[0][0]
 		else:
-			action = np.argmax(Q)
-		return np.clip(action, 0, money)
-
-	def update(self):
-		if len(self.myActions) > 1 and self.learning:
-			Q = self.QA if self.player == "A" else self.QB
-			rMax = self.rMaxA if self.player == "A" else self.rMaxB
-			cMax = self.cMaxA if self.player == "A" else self.cMaxB
-			c = self.cA if self.player == "A" else self.cB
-			action = self.myActions[-1]
-			reward = self.rewards[-1]
-			if reward > rMax[action]:
-				rMax[action] = reward
-				cMax[action] = 1
-			elif reward == rMax[action]:
-				cMax[action] += 1
-			c[action] += 1
-			alpha = self.alpha / c[action]
-			Q[action] += alpha * rMax[action]*cMax[action]/c[action]
-
+			a = np.argmax(self.Q)
+		give = int(np.clip(a, 0, money))
+		keep = int(money - give)
+		return give, keep
+	def learn(self, history):
+		if self.player == "A":
+			myGives = history['aGives']
+			myRewards = history['aRewards']
+		else:
+			myGives = history['bGives']
+			myRewards = history['bRewards']
+		for t in range(len(history['aGives'])):
+			a = myGives[t]
+			r = myRewards[t]
+			self.nA[a] += 1
+			self.Q[a] = (r + self.nA[a]*self.Q[a]) / (self.nA[a]+1)
+	def reduceExploration(self, i, epsilon0=10.0):
+		self.epsilon = epsilon0 / (i+1)
 	def reset(self):
-		super().reset()
-		self.iter += 1
+		pass
 
-	def fullReset(self):
-		super().fullReset()
-		self.QA = np.zeros((self.nActions))
-		self.rMaxA = np.zeros((self.nActions))
-		self.cMaxA = np.zeros((self.nActions))
-		self.cA = np.zeros((self.nActions))
-		self.QB = np.zeros((self.nActions))
-		self.rMaxB = np.zeros((self.nActions))
-		self.cMaxB = np.zeros((self.nActions))
-		self.cB = np.zeros((self.nActions))
-
-	def save(self, prefix=""):
-		np.savez("%sdata/%s.npz"%(prefix, self.ID),
-			QA=self.QA,
-			rMaxA=self.rMaxA,
-			cMaxA=self.cMaxA,
-			cA=self.cA,
-			QB=self.QB,
-			rMaxB=self.rMaxB,
-			cMaxB=self.cMaxB,
-			cB=self.cB)
-
-	def load(self, prefix=""):
-		data = np.load("%sdata/%s.npz"%(prefix, self.ID))
-		self.QA = data['QA']
-		self.rMaxA = data['rMaxA']
-		self.cMaxA = data['cMaxA']
-		self.cA = data['cA']
-		self.QB = data['QB']
-		self.rMaxB = data['rMaxB']
-		self.cMaxB = data['cMaxB']
-		self.cB = data['cB']
-
-	# def setData(self, data, rlData):
-	# 	super().setData(data)
-	# 	self.QA = rlData['QA']
-	# 	self.rMaxA = rlData['rMaxA']
-	# 	self.cMaxA = rlData['cMaxA']
-	# 	self.cA = rlData['cA']
-	# 	self.QB = rlData['QB']
-	# 	self.rMaxB = rlData['rMaxB']
-	# 	self.cMaxB = rlData['cMaxB']
-	# 	self.cB = rlData['cB']
-
-	# def getData(self):
-	# 	rlDict = {
-	# 		'QA': self.QA,
-	# 		'rMaxA': self.rMaxA,
-	# 		'cMaxA': self.cMaxA,
-	# 		'cA': self.cA,
-	# 		'QB': self.QB,
-	# 		'rMaxB': self.rMaxB,
-	# 		'cMaxB': self.cMaxB,
-	# 		'cB': self.cB
-	# 	}
-	# 	return rlDict
-
-
-
-class WoLFPHC(AgentBase):
-	def __init__(self, env, alpha=3e-2, deltaW=2e-1, deltaL=1e-1, firstMove="Generous",
-			temp=10, decay=0.95, gamma=0.99, epsilon=0.01, ID="WoLF-PHC"):
-		super().__init__()
+class QLearn(QAgent):
+	def __init__(self, player, actions, states, alpha=1e-2, gamma=0.9, epsilon=0.1, temp=0, ID="QLearn"):
+		self.player = player
 		self.ID = ID
 		self.epsilon = epsilon
-		self.capital = env.capital 
-		self.matchFactor = env.matchFactor
-		self.nActions = self.matchFactor*self.capital+1
-		self.nStates = 2*self.matchFactor*(self.capital+1)*(self.capital+1)
-		self.Q = np.zeros((self.nActions, self.nStates))
-		self.nAS = np.zeros((self.nActions, self.nStates))
-		self.pi = np.ones((self.nActions, self.nStates)) / self.nActions
-		self.piBar = np.ones((self.nActions, self.nStates)) / self.nActions
-		self.decay = decay
-		self.gamma = gamma
-		self.temp = temp
-		self.deltaW = deltaW
-		self.deltaL = deltaL
+		self.states = states
 		self.alpha = alpha
-		self.firstMove = firstMove
+		self.gamma = gamma
+		self.Q = np.zeros((states+3, actions))  # +2 for null states (see getState())
+		self.nSA = np.zeros((states+3, actions))
+	def learn(self, history):
+		for t in range(len(history['aGives'])-1):
+			s = self.getState(history, t)
+			snew = self.getState(history, t+1)
+			a = history['aGives'][t] if self.player == "A" else history['bGives'][t]
+			r = history['aRewards'][t] if self.player == "A" else history['bRewards'][t]
+			self.nSA[s,a] += 1
+			alpha = self.alpha / self.nSA[s,a]
+			self.Q[s, a] += alpha * (r + self.gamma*np.max(self.Q[snew, :]) - self.Q[s, a])
 
-	def action(self, money):
-		temp = self.temp * self.decay**self.iter
-		if np.random.rand() < self.epsilon:
-			action = np.random.randint(0, money) if money > 0 else 0
-		elif len(self.otherActions) < 1 or len(self.myActions) < 1:
-			if self.firstMove == "Generous":
-				action = money if self.player == "A" else int(money/2)
-			elif self.firstMove == "Random":
-				action = np.random.randint(0, money) if money > 0 else 0
-		elif temp > 0:
-			state = self.getState(-1)
-			probs = softmax(self.pi[:, state] / temp, axis=0)
-			action = np.where(np.cumsum(probs) >= np.random.rand())[0][0]
-		else:
-			state = self.getState(-1)
-			action = np.argmax(self.pi[:, state])
-		return np.clip(action, 0, money)
-
-	def getState(self, idx=-1):
-		k = self.matchFactor * self.capital+1 if self.player == "A" else 1
-		l = 1 if self.player == "A" else self.matchFactor * self.capital+1
-		m = 0 if self.player == "A" else int(self.nStates/2)
-		return m + k*self.myActions[idx] + l*self.otherActions[idx]
-
-	def update(self):
-		if len(self.otherActions) > 2 and len(self.myActions) > 2 and self.learning:
-			# normal Q-update
-			state = self.getState(-2)
-			stateNew = self.getState(-1)
-			action = self.myActions[-1]
-			reward = self.rewards[-1]
-			self.nAS[action, state] += 1
-			alpha = self.alpha / self.nAS[action, state]
-			self.Q[action, state] += alpha * (reward + self.gamma*np.max(self.Q[:, stateNew]) - self.Q[action, state])
-			# WoLF policy update
-			Cs = np.sum(self.nAS[:, state])
-			temp = self.temp * self.decay**self.iter
-			aGreedy = np.argmax(self.Q[:, state])
-			condition = np.sum(self.pi[:, state]*self.Q[:, state]) > np.sum(self.piBar[:, state]*self.Q[:, state])
-			delta = self.deltaW if condition else self.deltaL
-			for a in range(self.nActions):
-				self.piBar[a, state] += 1/Cs * (self.pi[a, state] - self.piBar[a, state])
+class Wolf(QAgent):
+	def __init__(self, player, actions, states, epsilon=0.1, ID="Wolf"):
+		self.player = player
+		self.ID = ID
+		self.epsilon = epsilon
+		self.states = states
+		self.actions = actions
+		self.Q = np.zeros((states+3, actions))
+		self.nSA = np.zeros((states+3, actions))
+		self.pi = np.ones((states+3, actions)) / actions
+		self.piBar = np.ones((states+3, actions)) / actions
+	def learn(self, history, alpha0=1e-2, dW=1e-1, dL=2e-1, gamma=0.99):
+		for t in range(len(history['aGives'])-1):
+			s = self.getState(history, t)
+			snew = self.getState(history, t+1)
+			a = history['aGives'][t] if self.player == "A" else history['bGives'][t]
+			r = history['aRewards'][t] if self.player == "A" else history['bRewards'][t]
+			self.nSA[s,a] += 1
+			alpha = alpha0 / self.nSA[s,a]
+			self.Q[s,a] += alpha * (r + gamma*np.max(self.Q[snew, :]) - self.Q[s, a])
+			# Win or learn fast policy update
+			Cs = np.sum(self.nSA[s,:])
+			aGreedy = np.argmax(self.Q[s,:])
+			condition = np.sum(self.pi[s,:]*self.Q[s,:]) > np.sum(self.piBar[s,:]*self.Q[s,:])
+			delta = dW if condition else dL
+			for a in range(self.actions):
+				self.piBar[s,a] += 1/Cs * (self.pi[s,a] - self.piBar[s,a])
 				if a != aGreedy:
-					deltaSA = np.min([self.pi[a, state], delta/(self.nActions-1)])
-					DeltaSA = -deltaSA
+					dSA = np.min([self.pi[s,a], delta/(self.actions-1)])
+					update = -dSA
 				else:
-					DeltaSA = 0
-					for ap in range(self.nActions):
-						if ap == aGreedy: continue
-						deltaSA = np.min([self.pi[ap, state], delta/(self.nActions-1)])
-						DeltaSA += deltaSA
-				self.pi[a, state] += DeltaSA
+					update = 0
+					for ap in range(self.actions):
+						if ap == aGreedy:
+							continue
+						dSA = np.min([self.pi[s, ap], delta/(self.actions-1)])
+						update += dSA
+				self.pi[s, a] += update
 
-	def reset(self):
-		super().reset()
-		self.iter += 1
-
-	def fullReset(self):
-		super().fullReset()
-		self.Q = np.zeros((self.nActions, self.nStates))
-		self.nAS = np.zeros((self.nActions, self.nStates))
-		self.pi = np.ones((self.nActions, self.nStates)) / self.nActions
-		self.piBar = np.ones((self.nActions, self.nStates)) / self.nActions
-
-	def save(self, prefix=""):
-		np.savez("%sdata/%s.npz"%(prefix, self.ID),
-			Q=self.Q,
-			nAS=self.nAS,
-			pi=self.pi,
-			piBar=self.piBar)
-
-	def load(self, prefix=""):
-		data = np.load("%sdata/%s.npz"%(prefix, self.ID))
-		self.Q = data['Q']
-		self.nAS = data['nAS']
-		self.pi = data['pi']
-		self.piBar = data['piBar']
-
-	# def setData(self, data, rlData):
-	# 	super().setData(data)
-	# 	self.Q = rlData['Q']
-	# 	self.nAS = rlData['nAS']
-	# 	self.pi = rlData['pi']
-	# 	self.piBar = rlData['piBar']
-
-	# def getData(self):
-	# 	rlDict = {
-	# 		'Q': self.Q,
-	# 		'nAS': self.nAS,
-	# 		'pi': self.pi,
-	# 		'piBar': self.piBar,
-	# 	}
-	# 	return rlDict
-
-class PGAAPP(AgentBase):
-	def __init__(self, env, alpha=3e-2, nu=1e-2, gamma=0.95, xi=0.95, firstMove="Generous",
-			temp=10, decay=0.9, epsilon=0.01, ID="PGA-APP"):
-		super().__init__()
+class Hill(QAgent):
+	def __init__(self, player, actions, states,
+			epsilon=0.1, alpha=3e-2, xi=0.95, nu=1e-2, gamma=0.9, ID="Hill"):
+		self.player = player
 		self.ID = ID
 		self.epsilon = epsilon
-		self.capital = env.capital 
-		self.matchFactor = env.matchFactor
-		self.nActions = self.matchFactor*self.capital+1
-		self.nStates = 2*self.matchFactor*(self.capital+1)*(self.capital+1)
-		self.Q = np.zeros((self.nActions, self.nStates))
-		self.pi = np.ones((self.nActions, self.nStates)) / self.nActions
-		self.delta = np.zeros((self.nActions, self.nStates))
-		self.V = np.zeros((self.nStates))
-		self.decay = decay
-		self.alpha = alpha  # theta in original paper
+		self.alpha = alpha
+		self.xi = xi
 		self.nu = nu
-		self.xi = xi  # gamma in original paper
-		self.gamma = gamma  # xi in original paper
-		self.temp = temp
-		self.firstMove = firstMove
-
-	def action(self, money):
-		temp = self.temp * self.decay**self.iter
-		if np.random.rand() < self.epsilon:
-			action = np.random.randint(0, money) if money > 0 else 0
-		elif len(self.otherActions) < 1 or len(self.myActions) < 1:
-			if self.firstMove == "Generous":
-				action = money if self.player == "A" else int(money/2)
-			elif self.firstMove == "Random":
-				action = np.random.randint(0, money) if money > 0 else 0
-		elif temp > 0:
-			state = self.getState(-1)
-			# probs = softmax(self.pi[:, state] / temp, axis=0)
-			probs = self.pi[:, state]
-			action = np.where(np.cumsum(probs) >= np.random.rand())[0][0]
-		else:
-			state = self.getState(-1)
-			action = np.argmax(self.pi[:, state])
-		return np.clip(action, 0, money)
-
-	def getState(self, idx=-1):
-		k = self.matchFactor * self.capital+1 if self.player == "A" else 1
-		l = 1 if self.player == "A" else self.matchFactor * self.capital+1
-		m = 0 if self.player == "A" else int(self.nStates/2)
-		return m + k*self.myActions[idx] + l*self.otherActions[idx]
-
-	def update(self):
-		if len(self.otherActions) > 2 and len(self.myActions) > 2 and self.learning:
-			state = self.getState(-2)
-			stateNew = self.getState(-1)
-			action = self.myActions[-1]
-			reward = self.rewards[-1]
-			self.Q[action, state] += self.alpha*(reward - self.Q[action, state] + self.gamma*np.max(self.Q[:, stateNew]))
-			self.V[state] = np.sum(self.pi[:, state]*self.Q[:, state])
-			for a in range(self.nActions):
-				if (1-self.pi[a, state]) == 0:
-					self.delta[a, state] = (self.Q[a, state] - self.V[state])
-				else:
-					self.delta[a, state] = (self.Q[a, state] - self.V[state]) / (1-self.pi[a, state])
-				delta = self.delta[a, state] - self.xi * np.abs(self.delta[a, state]) * self.pi[a, state]
-				self.pi[a, state] += self.nu * delta
-			# why is this necessary?
-			temp = self.temp * self.decay**self.iter	
-			if temp > 0:		
-				self.pi[:, state] = softmax(self.pi[:, state] / temp, axis=0)
-
-	def reset(self):
-		super().reset()
-		self.iter += 1
-
-	def fullReset(self):
-		super().fullReset()
-		self.Q = np.zeros((self.nActions, self.nStates))
-		self.pi = np.ones((self.nActions, self.nStates)) / self.nActions
-		self.delta = np.zeros((self.nActions, self.nStates))
-		self.V = np.zeros((self.nStates))
-
-	def save(self, prefix=""):
-		np.savez("%sdata/%s.npz"%(prefix, self.ID),
-			Q=self.Q,
-			pi=self.pi,
-			delta=self.delta,
-			V=self.V)
-
-	def load(self, prefix=""):
-		data = np.load("%sdata/%s.npz"%(prefix, self.ID))
-		self.Q = data['Q']
-		self.pi = data['pi']
-		self.delta = data['delta']
-		self.V = data['V']
-
-	# def setData(self, data, rlData):
-	# 	super().setData(data)
-	# 	self.Q = rlData['Q']
-	# 	self.pi = rlData['pi']
-	# 	self.delta = rlData['delta']
-	# 	self.V = rlData['V']
-
-	# def getData(self):
-	# 	rlDict = {
-	# 		'Q': self.Q,
-	# 		'pi': self.pi,
-	# 		'delta': self.delta,
-	# 		'V': self.V,
-	# 	}
-	# 	return rlDict
-
-
-class ModelBased(AgentBase):
-	def __init__(self, env, updateFreq=10, decay=0.95, gamma=0.99, epsilon=0.01,
-			firstMove="Generous", ID="Model-Based"):
-		super().__init__()
-		self.ID = ID
-		self.capital = env.capital 
-		self.matchFactor = env.matchFactor
-		self.nActions = self.matchFactor*self.capital+1
-		self.nStates = 2*self.matchFactor*(self.capital+1)*(self.capital+1)
-		self.R = np.zeros((self.nActions, self.nStates))
-		self.T = np.zeros((self.nActions, self.nStates, self.nStates)) # / nStates
-		self.V = np.zeros((self.nStates))
-		self.nAS = np.zeros((self.nActions, self.nStates))
-		self.nASS = np.zeros((self.nActions, self.nStates, self.nStates))
-		self.pi = np.zeros((self.nStates), dtype=int)
-		self.decay = decay
 		self.gamma = gamma
-		self.gameIter = 0
+		self.states = states
+		self.actions = actions
+		self.Q = np.zeros((states+3, actions))
+		self.pi = np.ones((states+3, actions)) / actions
+		self.delta = np.zeros((states+3, actions))
+		self.V = np.zeros((states+3))
+	def learn(self, history):
+		for t in range(len(history['aGives'])-1):
+			s = self.getState(history, t)
+			snew = self.getState(history, t+1)
+			a = history['aGives'][t] if self.player == "A" else history['bGives'][t]
+			r = history['aRewards'][t] if self.player == "A" else history['bRewards'][t]
+			self.Q[s,a] += self.alpha * (r + self.gamma*np.max(self.Q[snew, :]) - self.Q[s, a])
+			# Hill climbing policy update
+			self.V[s] = np.sum(self.pi[s,:]*self.Q[s,:])
+			for a in range(self.actions):
+				if (1-self.pi[s,a]) == 0:
+					self.delta[s,a] = (self.Q[s,a] - self.V[s])
+				else:
+					self.delta[s,a] = (self.Q[s,a] - self.V[s]) / (1-self.pi[s,a])
+				delta = self.delta[s,a] - self.xi * np.abs(self.delta[s,a]) * self.pi[s,a]
+				self.pi[s,a] += self.nu * delta
+
+
+class ModelBased(QAgent):
+	def __init__(self, player, actions, states, epsilon=0.1, gamma=0.9, ID="ModelBased"):
+		self.player = player
+		self.ID = ID
 		self.epsilon = epsilon
-		self.updateFreq = updateFreq
-		self.firstMove = firstMove
-
-	def action(self, money):
-		epsilon = self.epsilon + self.decay**self.iter
-		if np.random.rand() < epsilon:
-			action = np.random.randint(0, money) if money > 0 else 0
-		elif len(self.otherActions) < 1 or len(self.myActions) < 1:
-			if self.firstMove == "Generous":
-				action = money if self.player == "A" else int(money/2)
-			elif self.firstMove == "Random":
-				action = np.random.randint(0, money) if money > 0 else 0
+		self.states = states
+		self.actions = actions
+		self.epsilon = epsilon
+		self.gamma = gamma
+		self.R = np.zeros((states+3, actions))
+		self.T = np.zeros((states+3, actions, states+3))
+		self.V = np.zeros((states+3))
+		self.nSA = np.zeros((states+3, actions))
+		self.nSAS = np.zeros((states+3, actions, states+3))
+		self.pi = np.zeros((states+3))
+	def act(self, money, history):
+		state = self.getState(history, t=-1)
+		if money == 0:
+			a = 0
+		elif np.random.rand() < self.epsilon:
+			a = np.random.randint(0, money+1)
 		else:
-			state = self.getState(-1)
-			action = self.pi[state]
-		self.gameIter += 1
-		return np.clip(action, 0, money)
-
-	def getState(self, idx=-1):
-		k = self.matchFactor * self.capital+1 if self.player == "A" else 1
-		l = 1 if self.player == "A" else self.matchFactor * self.capital+1
-		m = 0 if self.player == "A" else int(self.nStates/2)
-		return m + k*self.myActions[idx] + l*self.otherActions[idx]
-
-	def update(self):
-		if len(self.otherActions) > 2 and len(self.myActions) > 2 and self.learning:
-			state = self.getState(-2)
-			stateNew = self.getState(-1)
-			action = self.myActions[-1]
-			reward = self.rewards[-1]
-			self.nAS[action, state] += 1
-			self.nASS[action, state, stateNew] += 1
-			self.T[action, state, :] = self.nASS[action, state, :] / self.nAS[action, state]
-			self.R[action, state] = (reward + (self.nAS[action, state]-1) * self.R[action, state]) / self.nAS[action, state]
-			if self.gameIter % self.updateFreq == 0:
-				Tpi = np.zeros((self.nStates, self.nStates))
-				Rpi = np.zeros((self.nStates))
-				for si in range(self.nStates):
-					a = self.pi[si]
-					Tpi[si] = self.T[a, si]
-					Rpi[si] = self.R[a, si]
-				A = np.eye(self.nStates) - self.gamma*Tpi
-				B = Rpi
-				self.V = np.linalg.solve(A, B)
-			self.pi = np.argmax(self.R + self.gamma * (self.T @ self.V), axis=0)
-
-	def reset(self):
-		super().reset()
-		self.iter += 1
-		self.gameIter = 0
-
-	def fullReset(self):
-		super().fullReset()
-		self.R = np.zeros((self.nActions, self.nStates))
-		self.T = np.zeros((self.nActions, self.nStates, self.nStates)) # / nStates
-		self.V = np.zeros((self.nStates))
-		self.nAS = np.zeros((self.nActions, self.nStates))
-		self.nASS = np.zeros((self.nActions, self.nStates, self.nStates))
-		self.pi = np.zeros((self.nStates), dtype=int)
-
-	def save(self, prefix=""):
-		np.savez("%sdata/%s.npz"%(prefix, self.ID),
-			R=self.R,
-			T=self.T,
-			V=self.V,
-			nASS=self.nASS,
-			pi=self.pi)
-
-	def load(self, prefix=""):
-		data = np.load("%sdata/%s.npz"%(prefix, self.ID))
-		self.R = data['R']
-		self.T = data['T']
-		self.V = data['V']
-		self.nASS = data['nASS']
-		self.pi = data['pi']
-
-	# def setData(self, data, rlData):
-	# 	super().setData(data)
-	# 	self.R = rlData['R']
-	# 	self.T = rlData['T']
-	# 	self.V = rlData['V']
-	# 	self.nASS = rlData['nASS']
-	# 	self.pi = rlData['pi']
-
-	# def getData(self):
-	# 	rlDict = {
-	# 		'R': self.R,
-	# 		'T': self.T,
-	# 		'V': self.V,
-	# 		'nASS': self.nASS,
-	# 		'pi': self.pi,
-	# 	}
-	# 	return rlDict
+			a = self.pi[state]
+		give = int(np.clip(a, 0, money))
+		keep = int(money - give)
+		return give, keep
+	def learn(self, history):
+		for t in range(len(history['aGives'])-1):
+			s = self.getState(history, t)
+			snew = self.getState(history, t+1)
+			a = history['aGives'][t] if self.player == "A" else history['bGives'][t]
+			r = history['aRewards'][t] if self.player == "A" else history['bRewards'][t]
+			self.nSA[s,a] += 1
+			self.nSAS[s,a,s] += 1
+			self.T[s,a,:] = self.nSAS[s,a,:] / self.nSA[s,a]
+			self.R[s,a] = (r + (self.nSA[s,a]-1) * self.R[s,a]) / self.nSA[s,a]
+			Tpi = np.zeros((self.states+3, self.states+3))
+			Rpi = np.zeros((self.states+3))
+			for si in range(self.states+3):
+				a = int(self.pi[si])
+				Tpi[si] = self.T[si,a]
+				Rpi[si] = self.R[si,a]
+			A = np.eye(self.states+3) - self.gamma*Tpi
+			B = Rpi
+			self.V = np.linalg.solve(A, B)
+			self.pi = np.argmax(self.R + self.gamma * (self.T @ self.V), axis=1)
+	def reduceExploration(self, i, decay=0.95):
+		self.epsilon = decay**i

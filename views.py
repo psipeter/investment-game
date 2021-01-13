@@ -123,41 +123,63 @@ def home(request):
 def user(request, username):
 	if request.user.username != username:
 		return redirect('home')  # todo: add warning
-	context = {'user': request.user,'path': request.path}
+	request.user.checkRequirements()
+	requiredGames = min(request.user.gamesPlayed, 3)
+	bonusGames = max(min(request.user.gamesPlayed, 63)-3, 0)
+	context = {
+		'user': request.user,
+		'path': request.path,
+		'requiredGames': requiredGames,
+		'bonusGames': bonusGames}
 	return render(request, 'home.html', context)
 
 @login_required
 def startGame(request):
 	# if request.user.currentGame:
 	# 	return redirect('continue') # enforce one currentGame
-	game = Game()
+	# todo: special games if request.user.doneRequiredGames is False
+	game = Game.objects.create()
 	game.start(request.user)
-	context = {'game': game}
+	context = {
+		'game': game,
+		'userGives': list(game.movesToArray("user", "give")),
+		'userKeeps': list(game.movesToArray("user", "keep")),
+		'agentGives': list(game.movesToArray("agent", "give")),
+		'agentKeeps': list(game.movesToArray("agent", "keep")),
+	}
 	return render(request, "game.html", context=context)
 
 @login_required
 def continueGame(request):
 	game = request.user.currentGame
-	context = {'game': game}
+	context = {
+		'game': game,
+		'userGives': list(game.movesToArray("user", "give")),
+		'userKeeps': list(game.movesToArray("user", "keep")),
+		'agentGives': list(game.movesToArray("agent", "give")),
+		'agentKeeps': list(game.movesToArray("agent", "keep")),
+	}
 	return render(request, "game.html", context=context)
 
 @login_required
 def updateGame(request):
-	userMove = request.POST.get('userMove')
-	userTime = request.POST.get('userTime')
+	userGive = int(request.POST.get('userGive'))
+	userKeep = int(request.POST.get('userKeep'))
+	userTime = float(request.POST.get('userTime'))/1000
 	game = request.user.currentGame
-	game.step(userMove, userTime)
-	if game.complete:
-		request.user.finishGame()
+	game.step(userGive, userKeep, userTime)
 	data = {
-		'userMove': game.userMove,
-		'userMoves': game.userMoves,
-		'agentMove': game.agentMove,
-		'agentMoves': game.agentMoves,
-		'complete': game.complete,
-		'userScore': game.userScore,
-		'agentScore': game.agentScore,
-		'userRole': game.userRole,
-		'agentRole': game.agentRole,
+		'userGives': str(list(game.movesToArray("user", "give"))),
+		'userKeeps': str(list(game.movesToArray("user", "keep"))),
+		'userScore': str(game.userScore),
+		'agentGives': str(list(game.movesToArray("agent", "give"))),
+		'agentKeeps': str(list(game.movesToArray("agent", "keep"))),
+		'agentScore': str(game.agentScore),
 	}
+	if game.complete:
+		request.user.currentGame = None
+		request.user.save()
+		data['complete'] = True
+	else:		
+		data['complete'] = False
 	return JsonResponse(data)

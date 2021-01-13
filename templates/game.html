@@ -23,11 +23,6 @@
 		<div class="grid">
 			<h2 id="playerA" class="leftPlayer">You</h2>
 			<h2 id="playerB" class="rightPlayer">Opponent</h2>
-			<!-- {{game.agent.agentType}} -->
-		</div>
-		<div class="finalScore leftright">
-			<h3>Final Score:</h3>
-			<h3>Final Score:</h3>
 		</div>
 		<div class='grid'>
 			<div class="user">
@@ -47,12 +42,8 @@
 
 	{% else %}
 		<div class="grid">
-			<h2 id="playerA" class="leftPlayer">{{game.agent.agentType}}</h2>
-			<h2 id="playerB" class="rightPlayer">{{user.username}}</h2>
-		</div>
-		<div class="finalScore leftright">
-			<h3>Final Score:</h3>
-			<h3>Final Score:</h3>
+			<h2 id="playerA" class="leftPlayer">Opponent</h2>
+			<h2 id="playerB" class="rightPlayer">You</h2>
 		</div>
 		<div class='grid'>
 			<div class='agent'>
@@ -79,9 +70,12 @@
 	<script type="text/javascript">
 		//pass django variables to external javascript
 		let userRole = "{{game.userRole}}";
-		let capital = "{{game.capital}}";
-		let matchFactor = "{{game.matchFactor}}";
-		let initialAgentMove = "{{game.agentMove}}";
+		let capital = Number("{{game.capital}}");
+		let match = Number("{{game.match}}");
+		let userGives = "{{userGives}}"
+		let userKeeps = "{{userKeeps}}"
+		let agentGives = "{{agentGives}}"
+		let agentKeeps = "{{agentKeeps}}"
 	</script>
 	<script src="{% static 'game.js' %}"></script>
 </body>

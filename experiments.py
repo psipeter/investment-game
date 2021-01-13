@@ -1,67 +1,62 @@
 import numpy as np
-try:
-	from utils import *
-	from agents import *
-	from plotter import *
-except:
-	from .utils import *
-	from .agents import *
-	from .plotter import *
+from agents import *
+from utils import *
 
-''' one-on-one matchups '''
+capital = 10
+match = 3
+turns = 10
+games = 100
+seed = 0
 
-env = Env(nIter=100, capital=10, matchFactor=3)
+A = Generous("A")
+A = Greedy("A")
+A = TitForTat("A", capital)
+A = Bandit("A", capital+1)
+A = QLearn("A", capital+1, states=2)
+A = Wolf("A", capital+1, states=2)
+A = Hill("A", capital+1, states=2)
+A = ModelBased("A", capital+1, states=11)
 
-a1 = FMQ(env)
-a2 = WoLFPHC(env)
-a3 = PGAAPP(env)
-a4 = ModelBased(env)
+B = Generous("B")
+B = Greedy("B")
+B = TitForTat("B", capital)
+B = Bandit("B", capital*match+1)
+B = QLearn("B", capital*match+1, states=2)
+B = Wolf("B", capital*match+1, states=2)
+B = ModelBased("B", capital*match+1, states=2)
 
-b1 = Gaussian(mean=0.0, std=0.1, ID="Greedy")
-b2 = Gaussian(mean=1.0, std=0.1, ID="Generous")
-b3 = Accumulator(env, maxReturn=0.5)
-b4 = TitForTat(env)
-
-c1 = FMQ(env)
-c2 = WoLFPHC(env)
-c3 = PGAAPP(env)
-c4 = ModelBased(env)
-
-# nonlearners = [b1, b2, b3, b4]
-# learners = [c1, c2, c3, c4]
-# performance(a1, nonlearners, env, nAvg=3, nEps=100, learners=False, plotOther=True)
-# performance(a1, learners, env, nAvg=3, nEps=100, learners=True, plotOther=True)
-# performance(a2, nonlearners, env, nAvg=3, nEps=100, learners=False, plotOther=True)
-# performance(a2, learners, env, nAvg=3, nEps=100, learners=True, plotOther=True)
-# performance(a3, nonlearners, env, nAvg=3, nEps=100, learners=False, plotOther=True)
-# performance(a3, learners, env, nAvg=3, nEps=100, learners=True, plotOther=True)
-# performance(a4, nonlearners, env, nAvg=3, nEps=100, learners=False, plotOther=True)
-# performance(a4, learners, env, nAvg=3, nEps=100, learners=True, plotOther=True)
-
-a2.load()
-performance(a2, [b1, b2, b3, b4], env, nAvg=3, nEps=100, learners=False, plotOther=True)
+# df = OneVsOne(A, B, capital, match, turns, games, seed)
 
 
-
-''' tournament '''
-
-env = Env(nIter=5, capital=10, matchFactor=3)
-
+rounds = 100
+agent =	QLearn("B", capital*match+1, states=2)
+role = "A"
 pop = [
-	# FMQ(env, alpha=3e-3, decay=0.99),
-	PGAAPP(env, alpha=3e-3, nu=1e-3, decay=0.99),
-	WoLFPHC(env, alpha=3e-3, deltaW=3, deltaL=1, decay=0.99),
-	ModelBased(env, decay=0.99, updateFreq=1),
-	Accumulator(env),
-	Accumulator(env, maxReturn=0.4, alpha=3e-1),
-	TitForTat(env),
-	TitForTat(env, strategy="Gain"),
-	# Gaussian(mean=0.0, std=0.1, ID="Greedy"),
-	# Gaussian(mean=1.0, std=0.1, ID="Generous"),
+	Generous(None),
+	TitForTat(None, capital),
 ]
+# df = OneVsMany(agent, pop, role, capital, match, turns, rounds, seed)
 
-# tournament(pop, env, nAvg=1, nRounds=10)
 
-# pop[0].saveModel(learnVsHumans=True)
-# pop[1].saveModel(learnVsHumans=True)
-# pop[2].saveModel(learnVsHumans=True)
+rounds = 10
+popA = [
+	Generous("A"),
+	Greedy("A"),
+	TitForTat("A", capital),
+	Bandit("A", capital+1),
+	QLearn("A", capital+1, states=2),
+	Wolf("A", capital+1, states=2),
+	Hill("A", capital+1, states=2),
+	ModelBased("A", capital+1, states=2),
+]
+popB = [
+	Generous("B"),
+	Greedy("B"),
+	TitForTat("B", capital),
+	Bandit("B", capital*match+1),
+	QLearn("B", capital*match+1, states=2),
+	Wolf("B", capital*match+1, states=2),
+	Hill("B", capital*match+1, states=2),
+	ModelBased("B", capital*match+1, states=2),
+]
+df = ManyVsMany(popA, popB, capital, match, turns, rounds, seed)
