@@ -17,11 +17,10 @@
 </head>
 
 <body>
-	<p class="top">Game ID: {{game.uuid}}</p>
-
 	{% if game.userRole == "A" %}
 		<div class="grid">
 			<h2 id="playerA" class="leftPlayer">You</h2>
+			<p id="whoseMove">Your Move</p>
 			<h2 id="playerB" class="rightPlayer">Opponent</h2>
 		</div>
 		<div class='grid'>
@@ -30,10 +29,10 @@
 			</div>
 			<form id="form">
 				{% csrf_token %}
-				<p id="whoseMove">Your Move</p>
 				<div id="inside" class="ui-slider-handle"></div>
 				<input type="submit" id="submit" updateURL="{% url 'updateGame' %}" value="send">
 			</form>
+			<div id="loader"></div>
 			<div class='agent'>
 				<p class="right" id="agentReward"></p>
 			</div>
@@ -43,6 +42,7 @@
 	{% else %}
 		<div class="grid">
 			<h2 id="playerA" class="leftPlayer">Opponent</h2>
+			<p id="whoseMove">Your Move</p>
 			<h2 id="playerB" class="rightPlayer">You</h2>
 		</div>
 		<div class='grid'>
@@ -51,10 +51,10 @@
 			</div>
 			<form id="form">
 				{% csrf_token %}
-				<p id="whoseMove">Your Move</p>
 				<div id="inside" class="ui-slider-handle"></div>
 				<input type="submit" id="submit" updateURL="{% url 'updateGame' %}" value="send">
 			</form>
+			<div id="loader"></div>
 			<div class="user">
 				<p class="right" id="userReward"></p>
 			</div>

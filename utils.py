@@ -4,6 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import itertools
+import time
 
 class Game():
 	def __init__(self, A, B, capital, match, turns):
@@ -54,17 +55,18 @@ class Game():
 		return df
 
 
-def OneVsOne(A, B, capital, match, turns, games, seed):
+def OneVsOne(A, B, capital, match, turns, games, seed, learn=True):
 	dfs = []
 	for g in range(games):
 		np.random.seed(seed+g)
 		G = Game(A, B, capital, match, turns)
 		G.play()
 		dfs.append(G.historyToDataframe(g))
-		A.learn(G.history)
-		B.learn(G.history)
-		A.reduceExploration(g)
-		B.reduceExploration(g)
+		if learn:
+			A.learn(G.history)
+			B.learn(G.history)
+			A.reduceExploration(g)
+			B.reduceExploration(g)
 	df = pd.concat([df for df in dfs], ignore_index=True)
 	ylim = ((0, capital*match))
 	fig, ax = plt.subplots()
@@ -77,36 +79,48 @@ def OneVsOne(A, B, capital, match, turns, games, seed):
 	fig.savefig(f"plots/{A.ID}_vs_{B.ID}.pdf")
 	return df
 
-def OneVsMany(agent, pop, role, capital, match, turns, rounds, seed):
+def OneVsMany(agent, pop, player, capital, match, turns, avg, rounds, games, seed):
 	dfs = []
-	for r in range(rounds):
-		# print(f'round {r}')
-		histories = []
+	for a in range(avg):
+		print(f'average {a}')
+		agent.restart()
 		for other in pop:
-			if role == "A":
-				A = agent
-				B = other
-			else:
-				A = other
-				B = agent
-			A.player = "A"
-			B.player = "B"
-			A.reset()
-			B.reset()
-			np.random.seed(seed)
-			G = Game(A, B, capital, match, turns)
-			G.play()
-			dfs.append(G.historyToDataframe(r))
-			histories.append({'A': A, 'B': B, 'hist': G.history})
-			seed += 1
-		# batch learning
-		np.random.shuffle(histories)
-		for hist in histories:
-			hist['A'].learn(hist['hist'])
-			hist['B'].learn(hist['hist'])
-		agent.reduceExploration(r)
-		for other in pop:
-			other.reduceExploration(r)
+			other.restart()
+		for r in range(rounds):
+			# print(f'round {r}')
+			np.random.shuffle(pop)
+			histories = []
+			for other in pop:
+				if player == "A":
+					A = agent
+					B = other
+				else:
+					A = other
+					B = agent
+				A.player = "A"
+				B.player = "B"
+				for g in range(games):
+					A.reset()
+					B.reset()
+					np.random.seed(seed)
+					G = Game(A, B, capital, match, turns)
+					G.play()
+					dfs.append(G.historyToDataframe(r))
+					histories.append({'A': A, 'B': B, 'hist': G.history})
+					seed += 1
+			# batch learning
+			np.random.shuffle(histories)
+			for hist in histories:
+				# start = time.time()
+				hist['A'].learn(hist['hist'])
+				hist['B'].learn(hist['hist'])
+				# end = time.time()
+				# print(f"learning time: {end-start} seconds")
+			agent.reduceExploration(r)
+			for other in pop:
+				other.reduceExploration(r)
+		# print(np.argmax(agent.Q, axis=1))
+		# print(agent.nSA)
 
 	df = pd.concat([df for df in dfs], ignore_index=True)
 	# df.to_pickle(f"plots/{agent.ID}_vsMany.pkl")
@@ -114,13 +128,16 @@ def OneVsMany(agent, pop, role, capital, match, turns, rounds, seed):
 	ylim = ((0, capital*match))
 	hue_order = [agent.ID for agent in pop]
 	fig, ax = plt.subplots()
-	role2 = "B" if role == "A" else "A"
-	sns.lineplot(data=df, x="game", y="aRewards", hue=role2, ax=ax, hue_order=hue_order)
-	ax.set(xlabel="round", ylim=ylim, yticks=(([0, 5, 10, 15, 20, 25, 30])), title=f"{role}: {agent.ID}")
+	player2 = "B" if player == "A" else "A"
+	if player == "A":
+		sns.lineplot(data=df, x="game", y="aRewards", hue=player2, ax=ax, hue_order=hue_order)
+	else:
+		sns.lineplot(data=df, x="game", y="bRewards", hue=player2, ax=ax, hue_order=hue_order)
+	ax.set(xlabel="round", ylim=ylim, yticks=(([0, 5, 10, 15, 20, 25, 30])), title=f"{player}: {agent.ID}")
 	ax.grid(True, axis='y')
 	leg = ax.legend(loc='upper left')
 	fig.tight_layout()
-	fig.savefig(f"plots/{agent.ID}_vs_Many.pdf")
+	fig.savefig(f"plots/{agent.ID}_{player}_vs_Many.pdf")
 	return df
 
 def ManyVsMany(popA, popB, capital, match, turns, rounds, seed):

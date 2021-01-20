@@ -1,11 +1,13 @@
 $(function() {  //on page load
 
-    // globals
+    // initialization and globals
     let maxUser;
     let maxAgent;
-    let turnTime = 1000;
+    let turnTime = 500;  // ms
     let startTime = performance.now();
     let endTime = performance.now();
+    let userScore = 0;
+    let agentScore = 0;
     complete = false
     // initial game conditions (if continued or agent moves first)
     function strToNum(arr){
@@ -20,9 +22,6 @@ $(function() {  //on page load
     userKeeps = strToNum(userKeeps.slice(1, -1).split(", "));
     agentGives = strToNum(agentGives.slice(1, -1).split(", "));
     agentKeeps = strToNum(agentKeeps.slice(1, -1).split(", "));
-    createTable();
-    let userScore = 0;
-    let agentScore = 0;
     if (userRole == "A") {
         maxUser = capital;
         maxAgent = 0;  // updated after user moves
@@ -31,14 +30,9 @@ $(function() {  //on page load
         maxAgent = capital;
         maxUser = 0;  // updated after agent moves
     }
-
-    // Hide final page content
     $("#end").hide();
     $(".finalScore").hide();
-
-    // Create the slider
     $("#form").slider({
-        create: function() {constrainSliderUser();},
         slide: function(event, ui) {
             let leftHandle;
             let rightHandle;
@@ -56,18 +50,12 @@ $(function() {  //on page load
             rightHandle.text("+"+sendRight);
         }
     });
-
-    // Animate agent's first choice
-    if (userRole == "B") {
-        $("#submit").hide();
-        $("#whoseMove").replaceWith("<p id='whoseMove'>Their Move</p>");
-        animateAgent();
-    }
+    createTable();
+    if (userRole == "A") {switchToUser();}
+    else {switchToAgent();}
 
     // Populate the move table
     function createTable() {
-        // console.log(userGives, userKeeps)
-        // console.log(agentGives, agentKeeps)
         let table = $('<table>').addClass('table');
         table.attr("id", "table");
         let headrow = $('<tr>');
@@ -76,7 +64,8 @@ $(function() {  //on page load
         header.text("action");
         header.attr("id", "action");
         headrow.append(header);
-        let nCols = Math.max(userGives.length, agentGives.length);
+        // let nCols = Math.max(userGives.length, agentGives.length);
+        let nCols = 5;
         for (a=0; a<nCols; a++){
             let header = $('<th>');
             header.text("turn "+a);
@@ -126,8 +115,14 @@ $(function() {  //on page load
         $("#table").replaceWith(table);
     }
 
-    // Constrain slider to legal moves
-    function constrainSliderUser() {
+    function switchToUser() {
+        createTable();
+        $("#whoseMove").text("Your move");
+        $("#form").show();
+        $("#loader").hide();
+        if (userRole=="B"){
+            maxUser = match*agentGives[agentGives.length-1];
+        }
         $("#form").slider("option", 'max', maxUser);
         if (userRole == "A") {
             $("#userReward").text("+"+maxUser);
@@ -139,47 +134,18 @@ $(function() {  //on page load
             $("#userReward").text("+"+maxUser);
             $("#form").slider("option", 'value', maxUser); // RTL
         }
-    }
-    function constrainSliderAgent() {
-        let agentMove = agentGives[agentGives.length-1];
-        if (userRole=="B"){
-            maxUser = match * agentMove;
-        }
-        $("#form").slider("option", 'value', 0);
-        $("#form").slider("option", 'max', maxAgent);
-        let i = 0;
-        function recursiveSlide() {
-            setTimeout(function() {
-                if (userRole == "B") {
-                    $("#form").slider("option", 'value', i);
-                    $("#agentReward").text("+"+(maxAgent-i));
-                    $("#userReward").text("+"+i);
-                }
-                else {
-                    $("#form").slider("option", 'value', (maxAgent-i));
-                    $("#agentReward").text("+"+(maxAgent-i));
-                    $("#userReward").text("+"+i);                    
-                }
-                i++;
-                if (i<=agentMove) {recursiveSlide();}
-            }, turnTime/maxAgent);
-        }        
-        setTimeout(recursiveSlide, 500);
+        startTime = performance.now()  // track user response time
     }
 
-    function animateAgent() {
-        constrainSliderAgent(); // takes turnTime
-        // prepare DOM for user's next move
+    function switchToAgent() {
+        $("#form").hide();
+        $("#loader").show();
+        $("#whoseMove").text("Their Move");
         setTimeout(function() {
             createTable();
-            $("#submit").show();
-            $("#whoseMove").replaceWith("<p id='whoseMove'>Your Move</p>");
-            constrainSliderUser();
-            startTime = performance.now()
-            if (complete){
-                gameComplete();
-            }
-        }, turnTime+1000); //activates 1s after turnTime
+            if (complete) {gameComplete();}
+            else {switchToUser();}
+        }, turnTime);
     }
 
     // Update models and DOM when "send" button is pressed
@@ -204,13 +170,12 @@ $(function() {  //on page load
 
     // called when user submits a move
     $("#submit").click(function callUpdate() {
-        endTime = performance.now()
+        endTime = performance.now() // track user response time
         let moves = getUserMove();
         let userGive = moves[0];
         let userKeep = moves[1];
         let userTime = (endTime-startTime);
-        $("#submit").hide();
-        $("#whoseMove").replaceWith("<p id='whoseMove'>Their Move</p>");
+        switchToAgent();
         let form = $("#form");
         let giveData = $('<input type="hidden" name="userGive"/>').val(userGive);
         let keepData = $('<input type="hidden" name="userKeep"/>').val(userKeep);
@@ -233,39 +198,46 @@ $(function() {  //on page load
                 agentKeeps = strToNum(returnData.agentKeeps.slice(1, -1).split(", "));
                 agentScore = Number(returnData.agentScore);
                 complete = returnData.complete;
-                if (complete) {
-                    if (userRole == "A") {animateAgent();}
-                    else {gameComplete();}
-                }
-                else {
-                    animateAgent();
-                }
+                if (complete) {gameComplete();}
+                else {switchToAgent();}
             }
         });
         return false;
     });
 
     // Final page after game is complete
-    function gameComplete() {
-        // $(".finalScore").show();
-        $("#whoseMove").hide();
-        $("#end").show();
-        $(".user").text(userScore);
-        $(".user").addClass("user");
-        $(".agent").text(agentScore);
-        $(".agent").addClass("agent");
-        $("#form").replaceWith('<p class="gameOver">Game Over</p>');
-        if (userRole == "A") {
-            $(".leftPlayer").text("Your Score");
-            $(".rightPlayer").text("Opponent Score");
-            $(".user").addClass("left");
-            $(".agent").addClass("right");
+    function gameComplete(pause=true) {
+        $("#loader").hide();
+        $("#form").hide();
+        if (userRole=="A" && pause) {
+            $("#loader").show();
+            $("#whoseMove").show();
+            $("#whoseMove").text("Their Move");
+            setTimeout(function() {
+                createTable();
+                gameComplete(pause=false);
+            }, turnTime);
         }
         else {
-            $(".leftPlayer").text("Opponent Score");
-            $(".rightPlayer").text("Your Score");
-            $(".user").addClass("right");
-            $(".agent").addClass("left");
+            $("#whoseMove").hide();
+            $("#end").show();
+            $(".user").text(userScore);
+            $(".user").addClass("user");
+            $(".agent").text(agentScore);
+            $(".agent").addClass("agent");
+            $("#form").replaceWith('<p class="gameOver">Game Over</p>');
+            if (userRole == "A") {
+                $(".leftPlayer").text("Your Score");
+                $(".rightPlayer").text("Opponent Score");
+                $(".user").addClass("left");
+                $(".agent").addClass("right");
+            }
+            else {
+                $(".leftPlayer").text("Opponent Score");
+                $(".rightPlayer").text("Your Score");
+                $(".user").addClass("right");
+                $(".agent").addClass("left");
+            }
         }
     }
 

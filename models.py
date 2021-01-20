@@ -13,8 +13,8 @@ from .agents import *
 from .utils import *
 
 
-popA = ['Bandit']
-popB = ['TitForTat']
+popA = ['ModelBased']
+popB = ['ModelBased']
 learn = True
 
 class Blob(models.Model):
@@ -37,43 +37,52 @@ class Agent(models.Model):
 		self.learner = learner
 		self.save()
 
-	def getObj(self, game, history):
+	def getObj(self, game, history, epsilon=0.5, states=30):
 		name = self.name
-		if Blob.objects.filter(name=name).exists():
-			# print(f"loaded blob named {name}")
-			self.blob = Blob.objects.get(name=name)
-			self.save()
+		player = self.player
+		learn = "learner" if self.learner else "trained"
+		blobname = f"{name}_{player}_{learn}"
+		file = f"{blobname}.npz"
+		capital = game.capital
+		match = game.match
+		actions = int(capital+1) if player == "A" else int(capital*match+1)
+		if Blob.objects.filter(name=blobname).exists():
+			print(f"loaded blob named {blobname}")
+			self.blob = Blob.objects.get(name=blobname)
 			self.obj = pickle.loads(self.blob.blob)
-			self.save()
 		else:
 			# create a new object and blob
-			# print(f"creating new blob named {name}")
+			print(f"creating new blob named {blobname}")
 			if name=='Greedy':
 				self.obj = Greedy(None)
 			elif name=="Generous":
 				self.obj = Generous(None)
 			elif name=="Accumulator":
-				self.obj = Accumulator(None, game.capital)
+				self.obj = Accumulator(None, capital)
 			elif name=="TitForTat":
-				self.obj = TitForTat(None, game.capital)
+				self.obj = TitForTat(None, capital)
 			elif name=="Bandit":
-				actions = game.capital+1 if self.player == "A" else game.capital*game.match+1
 				self.obj = Bandit(None, actions)
-				if not self.learner:
-					file = f"Bandit_{self.player}_trained.npz"
-					self.obj.loadArchive(file=file)
-			# elif saved RL agent
-			# load saved npz file
+			elif name=="QLearn":
+				self.obj = QLearn(None, actions, states)
+			elif name=="Wolf":
+				self.obj = Wolf(None, actions, states)
+			elif name=="Hill":
+				self.obj = Hill(None, actions, states)
+			elif name=="ModelBased":
+				self.obj = ModelBased(None, actions, states)
 			else:
 				raise Exception(f'{name} is not a valid agent class')
 			self.blob = Blob.objects.create()
-			self.blob.name = name
+			self.blob.name = blobname
 			self.blob.blob = pickle.dumps(self.obj)
-			self.blob.save()
-			self.save()			
+		if not self.learner:
+			self.obj.loadArchive(file=file)
 		self.obj.player = game.agentRole
 		self.obj.reset()
 		self.obj.replayHistory(history)
+		self.obj.epsilon = epsilon
+		self.blob.save()
 		self.save()
 
 	def learn(self, game):
@@ -162,6 +171,8 @@ class Game(models.Model):
 			'bKeeps': self.movesToArray(B, "keep"),
 		}
 		self.agent.getObj(self, history)
+		# print(self.agent.obj.Q)
+		print(self.agent.obj.pi)
 		agentGive, agentKeep = self.agent.obj.act(money, history)
 		self.agentGives += f"{agentGive:d},"
 		self.agentKeeps += f"{agentKeep:d},"

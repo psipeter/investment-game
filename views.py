@@ -179,7 +179,8 @@ def updateGame(request):
 	if game.complete:
 		request.user.currentGame = None
 		request.user.save()
-		# move learning elsewhere
+		# reinforcement learning from user's data
+		# todo: celery, spawn subprocess, or add loading bar
 		if game.complete and game.agent.learn:
 			game.agent.learn(game)
 		data['complete'] = True

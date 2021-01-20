@@ -8,11 +8,6 @@ h2 {
 	font-size: 20px;
 }
 
-.top {
-	font-size: 12px;
-	text-align: center;
-}
-
 .leftright {
 	display: flex;
 	justify-content: space-between;
@@ -53,9 +48,9 @@ h2 {
 	text-align: left;
 }
 #whoseMove {
+	margin: 0;
 	color: blue;
 	grid-column: 2;
-	margin-top: -20%;
 	text-align: center;
 }
 .rightPlayer{
@@ -146,7 +141,7 @@ h2 {
 }
 
 #moveTable {
-	margin-top: 10%;
+	margin-top: 15%;
 	position: relative;
 }
 
@@ -174,4 +169,20 @@ h2 {
 
 .black {
 	color: black;
+}
+
+#loader {
+	margin-top: 0%;
+	margin-left: 25%;
+	border: 16px solid grey;
+	border-top: 16px solid blue;
+	border-radius: 50%;
+	width: 50px;
+	height: 50px;
+	animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
