@@ -34,46 +34,8 @@ class HardcodedAgent(AgentBase):
 		# print('hard', give)
 		return give, keep
 
-class QAgent(AgentBase):
-	def act(self, money, history):
-		state = self.getState(history, -1)
-		if money == 0:
-			a = 0
-		elif np.random.rand() < self.epsilon:
-			a = np.random.randint(0, money+1)
-		else:
-			a = self.rlAct(state)
-		give = int(np.clip(a, 0, money))
-		keep = int(money - give)
-		return give, keep
-	def getState(self, history, t):
-		if len(history['aGives'])==0 or len(history['bGives'])==0 or t==0:
-			return 0  # no history state
-		if self.player == "A":
-			myGives = history['aGives'][t]
-			myKeeps = history['aKeeps'][t]
-			otherGives = history['bGives'][t]
-			otherKeeps = history['bKeeps'][t]
-		else:
-			myGives = history['bGives'][t]
-			myKeeps = history['bKeeps'][t]
-			otherGives = history['aGives'][t]
-			otherKeeps = history['aKeeps'][t]
-		if otherGives==0 and otherKeeps==0:
-			return 1  # no information state
-		# ratio = otherGives / otherKeeps
-		ratio = otherGives / (otherGives + otherKeeps)
-		# map this ratio into a discrete state space of size Q
-		state = int(ratio * self.states)
-		# if otherGives <=1: print(otherGives, otherKeeps, ratio, state)
-		assert 0 <= state <= self.states, "state outside limit"
-		return 2+state
-	def reduceExploration(self, i, eMin=0.0):
-		self.epsilon = max(eMin, self.decay**i)
-
-
 class Generous(HardcodedAgent):
-	def __init__(self, player, mean=1.0, std=0.1, epsilon=0.1, ID="Generous"):
+	def __init__(self, player, mean=1.0, std=0.05, epsilon=0, ID="Generous"):
 		self.player = player
 		self.ID = ID
 		self.mean = mean
@@ -84,7 +46,7 @@ class Generous(HardcodedAgent):
 		self.state = np.random.normal(self.mean, self.std)
 
 class Greedy(HardcodedAgent):
-	def __init__(self, player, mean=0.0, std=0.1, epsilon=0.1, ID="Greedy"):
+	def __init__(self, player, mean=0.0, std=0.05, epsilon=0, ID="Greedy"):
 		self.player = player
 		self.ID = ID
 		self.mean = mean
@@ -95,7 +57,7 @@ class Greedy(HardcodedAgent):
 		self.state = np.random.normal(self.mean, self.std)
 
 class Accumulator(HardcodedAgent):
-	def __init__(self, player, capital, alpha=2e-1, epsilon=0.1, ID="Accumulator"):
+	def __init__(self, player, capital, alpha=2e-1, epsilon=0, ID="Accumulator"):
 		self.player = player
 		self.ID = ID
 		self.capital = capital
@@ -135,7 +97,7 @@ class Accumulator(HardcodedAgent):
 		self.maxGive = 1.0 if self.player=="A" else 0.5
 
 class TitForTat(HardcodedAgent):
-	def __init__(self, player, capital, epsilon=0.1, ID="TitForTat"):
+	def __init__(self, player, capital, epsilon=0, ID="TitForTat"):
 		self.player = player
 		self.ID = ID
 		self.capital = capital
@@ -175,11 +137,62 @@ class TitForTat(HardcodedAgent):
 	def reset(self):
 		self.state = 1 if self.player=="A" else 0.5
 
-class Bandit(AgentBase):
-	def __init__(self, player, actions, decay=0.9, temp=0, ID="Bandit"):
+
+
+
+class RLAgent(AgentBase):
+	def act(self, money, history):
+		state = self.getState(history, -1)
+		if money == 0:
+			a = 0
+		elif np.random.rand() < self.epsilon:
+			a = np.random.randint(0, money+1)
+		else:
+			a = self.rlAct(state)
+		give = int(np.clip(a, 0, money))
+		keep = int(money - give)
+		return give, keep
+
+	def getState(self, history, t):
+		if len(history['aGives'])==0 or len(history['bGives'])==0 or t==0:
+			return 0  # no history state
+		if self.player == "A":
+			myGives = history['aGives'][t]
+			myKeeps = history['aKeeps'][t]
+			otherGives = history['bGives'][t]
+			otherKeeps = history['bKeeps'][t]
+		else:
+			myGives = history['bGives'][t]
+			myKeeps = history['bKeeps'][t]
+			otherGives = history['aGives'][t]
+			otherKeeps = history['aKeeps'][t]
+		if (otherGives==0 and otherKeeps==0) or (myGives==0 and myKeeps==0):
+			return 1  # no information state
+		myRatio = myGives / (myGives + myKeeps)
+		otherRatio = otherGives / (otherGives + otherKeeps)
+		# map this ratio into a discrete state space of size Q
+		maxState = 0 if self.states <= 1 else self.states-1
+		myState = int(myRatio * maxState)
+		otherState = int(otherRatio * maxState)
+		if self.rep == "other":
+			state = myState
+			assert 0 <= state <= self.states, "state outside limit"
+		elif self.rep == "self-other":
+			state = myState + self.states*otherState
+			assert 0 <= state <= self.states**2, "state outside limit"
+		return 2+state
+	def reduceExploration(self, i, eMin=0, aMin=0):
+		self.epsilon = max(eMin, np.exp(-i*self.decay))
+		# self.alpha = max(aMin, np.exp(-i*self.decay))
+
+class Bandit(RLAgent):
+	def __init__(self, player, actions, rep="other", decay=0.1, alpha=1e0, ID="Bandit"):
 		self.player = player
 		self.ID = ID
 		self.epsilon = 1.0
+		self.states = 0
+		self.alpha = alpha
+		self.rep = rep  # filler
 		self.decay = decay
 		self.Q = np.zeros((actions))
 		self.nA = np.zeros((actions))
@@ -196,7 +209,13 @@ class Bandit(AgentBase):
 			a = myGives[t]
 			r = myRewards[t]
 			self.nA[a] += 1
-			self.Q[a] = (r + self.nA[a]*self.Q[a]) / (self.nA[a]+1)
+			alpha = self.alpha / (self.nA[a])
+			# alpha = self.alpha  # causes Q to explode
+			self.Q[a] = alpha * (r + self.nA[a]*self.Q[a])
+	def restart(self):
+		self.epsilon = 1.0
+		self.Q = np.zeros_like((self.Q))
+		self.nA = np.zeros_like((self.nA))
 	def saveArchive(self, file):
 		np.savez(file, Q=self.Q, nA=self.nA)
 	def loadArchive(self, file):
@@ -205,33 +224,42 @@ class Bandit(AgentBase):
 		self.nA = data['nA']
 	def restart(self):
 		self.epsilon = 1.0
+		self.alpha = 1.0
 		self.Q = np.zeros_like((self.Q))
 		self.nA = np.zeros_like((self.nA))
 
 
-class QLearn(QAgent):
-	def __init__(self, player, actions, states, gamma=0.9, decay=0.95, ID="QLearn"):
+class QLearn(RLAgent):
+	def __init__(self, player, actions, states, rep="other", gamma=0.9, decay=0.1, alpha=1e0, ID="QLearn"):
 		self.player = player
 		self.ID = ID
-		self.states = 0 if states<=1 else states-1
+		self.states = states
 		self.gamma = gamma
 		self.epsilon = 1.0
+		self.alpha = alpha
 		self.decay = decay
-		self.Q = np.zeros((states+2, actions))  # +2 for null states (see getState())
-		self.nSA = np.zeros((states+2, actions))
+		self.rep = rep
+		if self.rep == "other":
+			self.Q = np.zeros((2+states, actions))  # +2 for null states (see getState())
+			self.nSA = np.zeros((2+states, actions))
+		elif self.rep == "self-other":
+			self.Q = np.zeros((2+states**2, actions))  # +2 for null states (see getState())
+			self.nSA = np.zeros((2+states**2, actions))
 	def rlAct(self, state):
 		return np.argmax(self.Q[state, :])
 	def learn(self, history):
-		for t in range(0, len(history['aGives'])-1):
-			s = self.getState(history, t)
-			snew = self.getState(history, t+1)
+		for t in np.arange(1, len(history['aGives'])):
+			s = self.getState(history, t-1)
+			snew = self.getState(history, t)
 			a = history['aGives'][t] if self.player == "A" else history['bGives'][t]
 			r = history['aRewards'][t] if self.player == "A" else history['bRewards'][t]
 			self.nSA[s,a] += 1
-			alpha = 1.0 / self.nSA[s,a]
+			alpha = self.alpha / self.nSA[s,a]
+			# alpha = self.alpha
 			self.Q[s, a] += alpha * (r + self.gamma*np.max(self.Q[snew, :]) - self.Q[s, a])
 	def restart(self):
 		self.epsilon = 1.0
+		# self.alpha = 1.0
 		self.Q = np.zeros_like((self.Q))
 		self.nSA = np.zeros_like((self.nSA))
 	def saveArchive(self, file):
@@ -243,21 +271,29 @@ class QLearn(QAgent):
 
 
 # from Table 5,6 of Bowling and Veloso 2002
-class Wolf(QAgent):
-	def __init__(self, player, actions, states, gamma=0.9, decay=0.95, dW=2e-1, dL=8e-1, ID="Wolf"):
+class Wolf(RLAgent):
+	def __init__(self, player, actions, states, rep="other", gamma=0.9, decay=0.1, alpha=1e0, dW=2e-1, dL=4e-1, ID="Wolf"):
 		self.player = player
 		self.ID = ID
 		self.epsilon = 1.0
-		self.states = 0 if states<=1 else states-1
+		self.alpha = alpha
+		self.states = states
 		self.actions = actions
 		self.gamma = gamma
 		self.decay = decay
 		self.dW = dW
 		self.dL = dL
-		self.Q = np.zeros((states+2, actions))
-		self.nSA = np.zeros((states+2, actions))
-		self.pi = np.ones((states+2, actions)) / actions
-		self.piBar = np.ones((states+2, actions)) / actions
+		self.rep = rep
+		if self.rep == "other":
+			self.Q = np.zeros((2+states, actions))  # +2 for null states (see getState())
+			self.nSA = np.zeros((2+states, actions))
+			self.pi = np.ones((2+states, actions)) / actions
+			self.piBar = np.ones((2+states, actions)) / actions
+		elif self.rep == "self-other":
+			self.Q = np.zeros((2+states**2, actions))
+			self.nSA = np.zeros((2+states**2, actions))
+			self.pi = np.ones((2+states**2, actions)) / actions
+			self.piBar = np.ones((2+states**2, actions)) / actions
 	def rlAct(self, state):
 		return np.argmax(self.pi[state, :])
 		# return np.argmax(self.Q[state, :])
@@ -269,7 +305,8 @@ class Wolf(QAgent):
 			r = history['aRewards'][t] if self.player == "A" else history['bRewards'][t]
 			# standard Q-learning update of value function
 			self.nSA[s,a] += 1
-			alpha = 1.0 / self.nSA[s,a]
+			alpha = self.alpha / self.nSA[s,a]
+			# alpha = self.alpha
 			self.Q[s,a] += alpha * (r + self.gamma*np.max(self.Q[snew, :]) - self.Q[s, a])
 			Cs = np.sum(self.nSA[s,:])
 			# variable learning rate
@@ -293,6 +330,7 @@ class Wolf(QAgent):
 			self.pi[s,a] += dSA
 	def restart(self):
 		self.epsilon = 1.0
+		# self.alpha = 1.0
 		self.Q = np.zeros_like((self.Q))
 		self.nSA = np.zeros_like((self.nSA))
 		self.pi = np.ones_like((self.pi)) / self.actions
@@ -306,22 +344,31 @@ class Wolf(QAgent):
 		self.pi = data['pi']
 		self.piBar = data['piBar']
 
-class Hill(QAgent):
-	def __init__(self, player, actions, states, decay=0.95, xi=0.95, nu=1e-2, gamma=0.9, ID="Hill"):
+class Hill(RLAgent):
+	def __init__(self, player, actions, states, rep="other", decay=0.1, xi=1, nu=1e-4, gamma=0.9, alpha=1e0, ID="Hill"):
 		self.player = player
 		self.ID = ID
-		self.epsilon = 1
+		self.epsilon = 1.0
+		self.alpha = alpha
 		self.xi = xi
 		self.nu = nu
 		self.gamma = gamma
 		self.decay = decay
-		self.states = 0 if states<=1 else states-1
+		self.states = states
 		self.actions = actions
-		self.Q = np.zeros((states+2, actions))
-		self.pi = np.ones((states+2, actions)) / actions
-		self.nSA = np.zeros((states+2, actions))
-		self.delta = np.zeros((states+2, actions))
-		self.V = np.zeros((states+2))
+		self.rep = rep
+		if self.rep == "other":
+			self.Q = np.zeros((2+states, actions))
+			self.pi = np.ones((2+states, actions)) / actions
+			self.nSA = np.zeros((2+states, actions))
+			self.delta = np.zeros((2+states, actions))
+			self.V = np.zeros((2+states))
+		elif self.rep == "self-other":
+			self.Q = np.zeros((2+states**2, actions))
+			self.pi = np.ones((2+states**2, actions)) / actions
+			self.nSA = np.zeros((2+states**2, actions))
+			self.delta = np.zeros((2+states**2, actions))
+			self.V = np.zeros((2+states**2))
 	def rlAct(self, state):
 		return np.argmax(self.pi[state, :])
 	def learn(self, history):
@@ -331,7 +378,8 @@ class Hill(QAgent):
 			a = history['aGives'][t] if self.player == "A" else history['bGives'][t]
 			r = history['aRewards'][t] if self.player == "A" else history['bRewards'][t]
 			self.nSA[s,a] += 1
-			alpha = 1.0 / self.nSA[s,a]				
+			alpha = self.alpha / self.nSA[s,a]				
+			# alpha = self.alpha
 			self.Q[s,a] += alpha * (r + self.gamma*np.max(self.Q[snew, :]) - self.Q[s, a])
 			# Hill climbing policy update
 			self.V[s] = np.sum(self.pi[s,:]*self.Q[s,:])
@@ -344,10 +392,9 @@ class Hill(QAgent):
 				delta = self.delta[s,a] - self.xi * np.abs(self.delta[s,a]) * self.pi[s,a]
 				self.pi[s,a] += self.nu * delta
 			self.pi[s] = softmax(self.pi[s])
-	# def reduceExploration(self, i, eMin=0.0):
-	# 	self.epsilon = max(eMin, self.decay**i)
 	def restart(self):
 		self.epsilon = 1.0
+		# self.alpha = 1.0
 		self.Q = np.zeros_like((self.Q))
 		self.pi = np.zeros_like((self.pi))
 		self.nSA = np.zeros_like(self.nSA)
@@ -364,21 +411,31 @@ class Hill(QAgent):
 		self.V = data['V']
 
 
-class ModelBased(QAgent):
-	def __init__(self, player, actions, states, gamma=0.9, decay=0.9, ID="ModelBased"):
+class ModelBased(RLAgent):
+	def __init__(self, player, actions, states, rep="other", gamma=0.9, decay=0.1, ID="ModelBased"):
 		self.player = player
 		self.ID = ID
-		self.epsilon = 1
-		self.states = 0 if states<=1 else states-1
+		self.epsilon = 1.0
+		# self.alpha = 0
+		self.states = states
 		self.actions = actions
 		self.gamma = gamma
 		self.decay = decay
-		self.R = np.zeros((states+2, actions))
-		self.T = np.zeros((states+2, actions, states+2))
-		self.V = np.zeros((states+2))
-		self.nSA = np.zeros((states+2, actions))
-		self.nSAS = np.zeros((states+2, actions, states+2))
-		self.pi = np.zeros((states+2))
+		self.rep = rep
+		if self.rep == "other":
+			self.R = np.zeros((2+states, actions))
+			self.T = np.zeros((2+states, actions, 2+states))
+			self.V = np.zeros((2+states))
+			self.nSA = np.zeros((2+states, actions))
+			self.nSAS = np.zeros((2+states, actions, 2+states))
+			self.pi = np.zeros((2+states))
+		elif self.rep == "self-other":
+			self.R = np.zeros((2+states**2, actions))
+			self.T = np.zeros((2+states**2, actions, 2+states**2))
+			self.V = np.zeros((2+states**2))
+			self.nSA = np.zeros((2+states**2, actions))
+			self.nSAS = np.zeros((2+states**2, actions, 2+states**2))
+			self.pi = np.zeros((2+states**2))
 	def rlAct(self, state):
 		return self.pi[state]
 	def learn(self, history):
@@ -391,13 +448,14 @@ class ModelBased(QAgent):
 			self.nSAS[s,a,s] += 1
 			self.T[s,a,:] = self.nSAS[s,a,:] / self.nSA[s,a]
 			self.R[s,a] = (r + (self.nSA[s,a]-1) * self.R[s,a]) / self.nSA[s,a]
-			Tpi = np.zeros((self.states+3, self.states+3))
-			Rpi = np.zeros((self.states+3))
-			for si in range(self.states+3):
+			nState = self.pi.shape[0]
+			Tpi = np.zeros((nState, nState))
+			Rpi = np.zeros((nState))
+			for si in range(self.pi.shape[0]):
 				a = int(self.pi[si])
 				Tpi[si] = self.T[si,a]
 				Rpi[si] = self.R[si,a]
-			A = np.eye(self.states+3) - self.gamma*Tpi
+			A = np.eye(nState) - self.gamma*Tpi
 			B = Rpi
 			self.V = np.linalg.solve(A, B)
 			self.pi = np.argmax(self.R + self.gamma * (self.T @ self.V), axis=1)
