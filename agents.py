@@ -5,7 +5,7 @@ import random
 class AgentBase():
 	def act(self, money, history):
 		pass
-	def getState(self, history, t):
+	def setState(self, history, t):
 		pass
 	def update(self, history):
 		pass
@@ -19,371 +19,444 @@ class AgentBase():
 		pass
 	def replayHistory(self, history):
 		pass
+	def saveArchive(self, file):
+		pass	
+	def loadArchive(self, file):
+		pass
 
 class HardcodedAgent(AgentBase):
 	def act(self, money, history):
 		self.update(history)
 		if money == 0:
 			a = 0
-		elif np.random.rand() < self.epsilon:
+		elif np.random.rand() < self.E:
 			a = np.random.randint(0, money+1)
 		else:
 			a = money * self.state
 		give = int(np.clip(a, 0, money))
 		keep = int(money - give)
-		# print('hard', give)
 		return give, keep
+	def reset(self):
+		self.state = 0
+	# instead, just load state from history
+
+	# def replayHistory(self, history):
+	# 	steps = min(len(history['aGives']), len(history['bGives']))
+	# 	for t in range(steps):
+	# 		historySlice = {
+	# 			'aGives': history['aGives'][:t+1],
+	# 			'aKeeps': history['aKeeps'][:t+1],
+	# 			'bGives': history['bGives'][:t+1],
+	# 			'bKeeps': history['bKeeps'][:t+1],
+	# 		}
+	# 		self.update(historySlice)
 
 class Generous(HardcodedAgent):
-	def __init__(self, player, mean=1.0, std=0.05, epsilon=0, ID="Generous"):
+	def __init__(self, player, mean=1.0, std=0.05, E=0, ID="Generous"):
 		self.player = player
 		self.ID = ID
 		self.mean = mean
 		self.std = std
-		self.epsilon = epsilon
+		self.E = E
 		self.state = 0
 	def update(self, history):
 		self.state = np.random.normal(self.mean, self.std)
 
 class Greedy(HardcodedAgent):
-	def __init__(self, player, mean=0.0, std=0.05, epsilon=0, ID="Greedy"):
+	def __init__(self, player, mean=0.0, std=0.05, E=0, ID="Greedy"):
 		self.player = player
 		self.ID = ID
 		self.mean = mean
 		self.std = std
-		self.epsilon = epsilon
+		self.E = E
 		self.state = 1
 	def update(self, history):
 		self.state = np.random.normal(self.mean, self.std)
 
-class Accumulator(HardcodedAgent):
-	def __init__(self, player, capital, alpha=2e-1, epsilon=0, ID="Accumulator"):
+class T4T(HardcodedAgent):
+	def __init__(self, player, F=0.5, P=1.0, E=0, ID="T4T"):
 		self.player = player
 		self.ID = ID
-		self.capital = capital
-		self.alpha = alpha
-		self.epsilon = epsilon
+		self.F = F  # rate of forgiveness (state increase with opponent generosity)
+		self.P = P  # rate of punishment (state decrease with opponent greed)
+		assert F >= 0, "forgiveness rate must be positive or zero"
+		assert P >= 0, "punishment rate must be positive or zero"
+		self.E = E
 		self.state = 1.0 if self.player=="A" else 0.5
 		self.maxGive = 1.0 if self.player=="A" else 0.5
 	def update(self, history):
 		if len(history['aGives'])==0 or len(history['bGives'])==0:
 			return
 		if self.player == "A":
-			if history['bGives'][-1] > history['aGives'][-1]:
-				self.state += self.alpha
-			elif history['bGives'][-1] < history['aGives'][-1]:
-				self.state -= self.alpha
-			self.state = np.clip(self.state, 0, self.maxGive)
-		elif self.player == "B":
-			if history['aGives'][-1] == self.capital:
-				self.state += self.alpha
-			else:
-				self.state -= self.alpha
-			self.state = np.clip(self.state, 0, self.maxGive)
+			otherGive = history['bGives'][-1]
+			otherKeep = history['bKeeps'][-1]
+			# delta proportional to give minus keep
+			# unless no information (because A gave 0), in which case forgive a bit
+			delta = (otherGive-otherKeep)/(otherGive+otherKeep) if otherGive+otherKeep>0 else 0.1
 		else:
-			raise "player not set"
-	def replayHistory(self, history):
-		steps = min(len(history['aGives']), len(history['bGives']))
-		for t in range(steps):
-			historySlice = {
-				'aGives': history['aGives'][:t+1],
-				'aKeeps': history['aKeeps'][:t+1],
-				'bGives': history['bGives'][:t+1],
-				'bKeeps': history['bKeeps'][:t+1],
-			}
-			self.update(historySlice)
+			otherGive = history['aGives'][-1]
+			otherKeep = history['aKeeps'][-1]
+			# delta positive if A invested maximum
+			# otherwise negative depending on the amount kept
+			delta = 1 if otherKeep==0 else -otherKeep/(otherGive+otherKeep)
+		self.state += delta*self.F if delta>0 else delta*self.P
+		self.state = np.clip(self.state, 0, self.maxGive)
 	def reset(self):
 		self.state = 1.0 if self.player=="A" else 0.5
 		self.maxGive = 1.0 if self.player=="A" else 0.5
-
-class TitForTat(HardcodedAgent):
-	def __init__(self, player, capital, epsilon=0, ID="TitForTat"):
-		self.player = player
-		self.ID = ID
-		self.capital = capital
-		self.epsilon = epsilon
-		self.state = 1 if self.player=="A" else 0.5
-	def update(self, history):
-		if len(history['aGives'])==0 or len(history['bGives'])==0:
-			return
-		if self.player == "A":
-			# if A gave nothing last turn:
-			if history['aGives'][-1] == 0:
-				# self.state = 0  # continue punishing
-				self.state = 0.1  # chance for redemption
-				# self.state = np.random.rand()  # random action
-			# if A gave something last turn
-			else:
-				# happy if B gave more than B kept
-				if history['bKeeps'][-1] == 0:
-					self.state = 1  # avoid div by zero
-				else:
-					self.state =  history['bGives'][-1] / history['bKeeps'][-1]
-			self.state = np.clip(self.state, 0, 1)
-		elif self.player == "B":
-			# happy if A gave 100% of capital
-			self.state = 0.5 * history['aGives'][-1] / self.capital
-			self.state = np.clip(self.state, 0, 0.5)
-	def replayHistory(self, history):
-		steps = min(len(history['aGives']), len(history['bGives']))
-		for t in range(steps):
-			historySlice = {
-				'aGives': history['aGives'][:t+1],
-				'aKeeps': history['aKeeps'][:t+1],
-				'bGives': history['bGives'][:t+1],
-				'bKeeps': history['bKeeps'][:t+1],
-			}
-			self.update(historySlice)
-	def reset(self):
-		self.state = 1 if self.player=="A" else 0.5
-
-
 
 
 class RLAgent(AgentBase):
 	def act(self, money, history):
-		state = self.getState(history, -1)
+		self.setState(history, -1)
 		if money == 0:
 			a = 0
-		elif np.random.rand() < self.epsilon:
+		elif np.random.rand() < self.E:
 			a = np.random.randint(0, money+1)
 		else:
-			a = self.rlAct(state)
+			a = self.rlAct()
 		give = int(np.clip(a, 0, money))
 		keep = int(money - give)
+		# print('act', self.state, give)
 		return give, keep
-
-	def getState(self, history, t):
-		if len(history['aGives'])==0 or len(history['bGives'])==0 or t==0:
-			return 0  # no history state
+	def setState(self, history, t):
+		if len(history['aGives'])==0 or len(history['bGives'])==0:
+			self.state = 0  # no history state
+			return
 		if self.player == "A":
-			myGives = history['aGives'][t]
-			myKeeps = history['aKeeps'][t]
-			otherGives = history['bGives'][t]
-			otherKeeps = history['bKeeps'][t]
+			myGive = history['aGives'][t]
+			myKeep = history['aKeeps'][t]
+			otherGive = history['bGives'][t]
+			otherKeep = history['bKeeps'][t]
 		else:
-			myGives = history['bGives'][t]
-			myKeeps = history['bKeeps'][t]
-			otherGives = history['aGives'][t]
-			otherKeeps = history['aKeeps'][t]
-		if (otherGives==0 and otherKeeps==0) or (myGives==0 and myKeeps==0):
-			return 1  # no information state
-		myRatio = myGives / (myGives + myKeeps)
-		otherRatio = otherGives / (otherGives + otherKeeps)
+			myGive = history['bGives'][t]
+			myKeep = history['bKeeps'][t]
+			otherGive = history['aGives'][t]
+			otherKeep = history['aKeeps'][t]
+		if (otherGive==0 and otherKeep==0) or (myGive==0 and myKeep==0):
+			self.state = 1  # no information state
+			return
+		myRatio = myGive / (myGive + myKeep)
+		otherRatio = otherGive / (otherGive + otherKeep)
 		# map this ratio into a discrete state space of size Q
-		maxState = 0 if self.states <= 1 else self.states-1
+		maxState = 0 if self.nS <= 1 else self.nS-1
 		myState = int(myRatio * maxState)
 		otherState = int(otherRatio * maxState)
 		if self.rep == "other":
-			state = myState
-			assert 0 <= state <= self.states, "state outside limit"
+			state = otherState
+			assert 0 <= state <= self.nS, "state outside limit"
 		elif self.rep == "self-other":
-			state = myState + self.states*otherState
-			assert 0 <= state <= self.states**2, "state outside limit"
-		return 2+state
-	def reduceExploration(self, i, eMin=0, aMin=0):
-		self.epsilon = max(eMin, np.exp(-i*self.decay))
-		# self.alpha = max(aMin, np.exp(-i*self.decay))
+			state = myState + self.nS*otherState
+			assert 0 <= state <= self.nS**2, "state outside limit"
+		self.state = 2+state
+	def reset(self):
+		self.state = 0
 
 class Bandit(RLAgent):
-	def __init__(self, player, actions, rep="other", decay=0.1, alpha=1e0, ID="Bandit"):
+	def __init__(self, player, nA, rep="other", rew=[1,0,0,0], E=0, T=100, dE=0.9, dT=0.9, ID="Bandit"):
 		self.player = player
+		self.nA = nA
+		self.state = 0
+		self.nS = 0
 		self.ID = ID
-		self.epsilon = 1.0
-		self.states = 0
-		self.alpha = alpha
-		self.rep = rep  # filler
-		self.decay = decay
-		self.Q = np.zeros((actions))
-		self.nA = np.zeros((actions))
-	def rlAct(self, state):
-		return np.argmax(self.Q)
+		self.E = E  # epsilon random action
+		self.T = T  # temperature for Boltzmann exploration
+		self.E0 = E
+		self.T0 = T
+		self.rep = rep  # representation sheme for state
+		self.rew = rew  # reward scheme: [self_now, other_now, self_mean, other_mean]
+		self.dE = dE  # epsilon decay
+		self.dT = dT  # temperature decay
+		self.Q = np.zeros((nA))  # value function
+		self.cA = np.zeros((nA))  # visits to each action
+	def rlAct(self):
+		if self.T > 0:
+			prob = softmax(self.Q / self.T)
+			return np.where(np.cumsum(prob) >= np.random.rand())[0][0]
+		else:
+			return np.argmax(self.Q)
 	def learn(self, history):
 		if self.player == "A":
 			myGives = history['aGives']
 			myRewards = history['aRewards']
+			myStates = history['aStates']
+			otherRewards = history['bRewards']
 		else:
 			myGives = history['bGives']
 			myRewards = history['bRewards']
-		for t in range(len(history['aGives'])):
+			myStates = history['bStates']
+			otherRewards = history['aRewards']
+		for t in range(len(myGives)-1):
+			s = myStates[t]
+			snew = myStates[t+1]
 			a = myGives[t]
-			r = myRewards[t]
-			self.nA[a] += 1
-			alpha = self.alpha / (self.nA[a])
-			# alpha = self.alpha  # causes Q to explode
-			self.Q[a] = alpha * (r + self.nA[a]*self.Q[a])
-	def restart(self):
-		self.epsilon = 1.0
-		self.Q = np.zeros_like((self.Q))
-		self.nA = np.zeros_like((self.nA))
+			r = ((self.rew[0]*myRewards[t] + 
+				self.rew[1]*otherRewards[t] + 
+				self.rew[2]*np.mean(myRewards) + 
+				self.rew[3]*np.mean(otherRewards)) / 
+				np.sum(self.rew))
+			self.cA[a] += 1
+			self.Q[a] = (r + self.cA[a]*self.Q[a]) / (self.cA[a] + 1)
+	def reduceExploration(self, i):
+		self.E *= self.dE
+		self.T *= self.dT
 	def saveArchive(self, file):
-		np.savez(file, Q=self.Q, nA=self.nA)
+		np.savez(file, Q=self.Q, nA=self.cA)
 	def loadArchive(self, file):
 		data = np.load(file)
 		self.Q = data['Q']
-		self.nA = data['nA']
+		self.cA = data['nA']
 	def restart(self):
-		self.epsilon = 1.0
-		self.alpha = 1.0
+		self.E = self.E0
+		self.T = self.T0
 		self.Q = np.zeros_like((self.Q))
-		self.nA = np.zeros_like((self.nA))
+		self.cA = np.zeros_like((self.cA))
+
 
 
 class QLearn(RLAgent):
-	def __init__(self, player, actions, states, rep="other", gamma=0.9, decay=0.1, alpha=1e0, ID="QLearn"):
+	def __init__(self, player, nA, nS, rep="other", rew=[1,0,0,0], E=0, T=100, L=1, G=0.9, dE=0.9, dL=0.9, dT=0.9, ID="QLearn"):
 		self.player = player
 		self.ID = ID
-		self.states = states
-		self.gamma = gamma
-		self.epsilon = 1.0
-		self.alpha = alpha
-		self.decay = decay
+		self.nA = nA
+		self.state = 0
+		self.nS = nS
+		self.G = G
+		self.E = E
+		self.L = L
+		self.T = T
+		self.E0 = E
+		self.L0 = L
+		self.T0 = T
+		self.dE = dE
+		self.dL = dL
+		self.dT = dT
 		self.rep = rep
+		self.rew = rew
 		if self.rep == "other":
-			self.Q = np.zeros((2+states, actions))  # +2 for null states (see getState())
-			self.nSA = np.zeros((2+states, actions))
+			self.Q = np.zeros((2+nS, nA))  # +2 for null nS (see setState())
+			self.cSA = np.zeros((2+nS, nA))
 		elif self.rep == "self-other":
-			self.Q = np.zeros((2+states**2, actions))  # +2 for null states (see getState())
-			self.nSA = np.zeros((2+states**2, actions))
-	def rlAct(self, state):
-		return np.argmax(self.Q[state, :])
+			self.Q = np.zeros((2+nS**2, nA))  # +2 for null nS (see setState())
+			self.cSA = np.zeros((2+nS**2, nA))
+	def rlAct(self):
+		if self.T > 0:
+			prob = softmax(self.Q[self.state] / self.T)
+			return np.where(np.cumsum(prob) >= np.random.rand())[0][0]
+		else:
+			return np.argmax(self.Q[self.state, :])
 	def learn(self, history):
-		for t in np.arange(1, len(history['aGives'])):
-			s = self.getState(history, t-1)
-			snew = self.getState(history, t)
-			a = history['aGives'][t] if self.player == "A" else history['bGives'][t]
-			r = history['aRewards'][t] if self.player == "A" else history['bRewards'][t]
-			self.nSA[s,a] += 1
-			alpha = self.alpha / self.nSA[s,a]
-			# alpha = self.alpha
-			self.Q[s, a] += alpha * (r + self.gamma*np.max(self.Q[snew, :]) - self.Q[s, a])
+		if self.player == "A":
+			myGives = history['aGives']
+			myRewards = history['aRewards']
+			myStates = history['aStates']
+			otherRewards = history['bRewards']
+		else:
+			myGives = history['bGives']
+			myRewards = history['bRewards']
+			myStates = history['bStates']
+			otherRewards = history['aRewards']
+		for t in range(len(myGives)-1):
+			s = myStates[t]
+			snew = myStates[t+1]
+			a = myGives[t]
+			r = ((self.rew[0]*myRewards[t] + 
+				self.rew[1]*otherRewards[t] + 
+				self.rew[2]*np.mean(myRewards) + 
+				self.rew[3]*np.mean(otherRewards)) / 
+				np.sum(self.rew))
+			self.cSA[s,a] += 1
+			# L = self.L / self.cSA[s,a]
+			L = self.L
+			self.Q[s, a] += L * (r + self.G*np.max(self.Q[snew, :]) - self.Q[s, a])
 	def restart(self):
-		self.epsilon = 1.0
-		# self.alpha = 1.0
+		self.E = self.E0
+		self.L = self.L0
+		self.T = self.T0
 		self.Q = np.zeros_like((self.Q))
-		self.nSA = np.zeros_like((self.nSA))
+		self.cSA = np.zeros_like((self.cSA))
+	def reduceExploration(self, i):
+		self.E *= self.dE
+		self.L *= self.dL
+		self.T *= self.dT
 	def saveArchive(self, file):
-		np.savez(file, Q=self.Q, nSA=self.nSA)
+		np.savez(file, Q=self.Q, nSA=self.cSA)
 	def loadArchive(self, file):
 		data = np.load(file)
 		self.Q = data['Q']
-		self.nSA = data['nSA']
+		self.cSA = data['nSA']
 
 
 # from Table 5,6 of Bowling and Veloso 2002
 class Wolf(RLAgent):
-	def __init__(self, player, actions, states, rep="other", gamma=0.9, decay=0.1, alpha=1e0, dW=2e-1, dL=4e-1, ID="Wolf"):
+	def __init__(self, player, nA, nS, rep="other", rew=[1,0,0,0], E=0, T=100, L=1, G=0.9, dE=0.9, dL=0.9, dT=0.9, dW=1e-1, dN=2e-1, ID="Wolf"):
 		self.player = player
 		self.ID = ID
-		self.epsilon = 1.0
-		self.alpha = alpha
-		self.states = states
-		self.actions = actions
-		self.gamma = gamma
-		self.decay = decay
-		self.dW = dW
+		self.state = 0
+		self.nS = nS
+		self.nA = nA
+		self.G = G
+		self.E = E
+		self.L = L
+		self.T = T
+		self.E0 = E
+		self.L0 = L
+		self.T0 = T
+		self.dE = dE
 		self.dL = dL
+		self.dT = dT
+		self.dW = dW
+		self.dN = dN
 		self.rep = rep
+		self.rew = rew
 		if self.rep == "other":
-			self.Q = np.zeros((2+states, actions))  # +2 for null states (see getState())
-			self.nSA = np.zeros((2+states, actions))
-			self.pi = np.ones((2+states, actions)) / actions
-			self.piBar = np.ones((2+states, actions)) / actions
+			self.Q = np.zeros((2+nS, nA))  # +2 for null nS (see setState())
+			self.cSA = np.zeros((2+nS, nA))
+			self.pi = np.ones((2+nS, nA)) / nA
+			self.piBar = np.ones((2+nS, nA)) / nA
 		elif self.rep == "self-other":
-			self.Q = np.zeros((2+states**2, actions))
-			self.nSA = np.zeros((2+states**2, actions))
-			self.pi = np.ones((2+states**2, actions)) / actions
-			self.piBar = np.ones((2+states**2, actions)) / actions
-	def rlAct(self, state):
-		return np.argmax(self.pi[state, :])
-		# return np.argmax(self.Q[state, :])
+			self.Q = np.zeros((2+nS**2, nA))
+			self.cSA = np.zeros((2+nS**2, nA))
+			self.pi = np.ones((2+nS**2, nA)) / nA
+			self.piBar = np.ones((2+nS**2, nA)) / nA
+	def rlAct(self):
+		if self.T > 0:
+			prob = softmax(self.pi[self.state] / self.T)
+			return np.where(np.cumsum(prob) >= np.random.rand())[0][0]
+		else:
+			return np.argmax(self.pi[self.state])
 	def learn(self, history):
-		for t in np.arange(1, len(history['aGives'])):
-			s = self.getState(history, t-1)
-			snew = self.getState(history, t)
-			a = history['aGives'][t] if self.player == "A" else history['bGives'][t]
-			r = history['aRewards'][t] if self.player == "A" else history['bRewards'][t]
+		if self.player == "A":
+			myGives = history['aGives']
+			myRewards = history['aRewards']
+			myStates = history['aStates']
+			otherRewards = history['bRewards']
+		else:
+			myGives = history['bGives']
+			myRewards = history['bRewards']
+			myStates = history['bStates']
+			otherRewards = history['aRewards']
+		for t in range(len(myGives)-1):
+			s = myStates[t]
+			snew = myStates[t+1]
+			a = myGives[t]
+			r = ((self.rew[0]*myRewards[t] + 
+				self.rew[1]*otherRewards[t] + 
+				self.rew[2]*np.mean(myRewards) + 
+				self.rew[3]*np.mean(otherRewards)) / 
+				np.sum(self.rew))
 			# standard Q-learning update of value function
-			self.nSA[s,a] += 1
-			alpha = self.alpha / self.nSA[s,a]
-			# alpha = self.alpha
-			self.Q[s,a] += alpha * (r + self.gamma*np.max(self.Q[snew, :]) - self.Q[s, a])
-			Cs = np.sum(self.nSA[s,:])
+			self.cSA[s,a] += 1
+			# L = self.L / self.cSA[s,a]
+			L = self.L
+			self.Q[s,a] += L * (r + self.G*np.max(self.Q[snew, :]) - self.Q[s, a])
+			Cs = np.sum(self.cSA[s,:])
 			# variable learning rate
 			aMax = np.argmax(self.Q[s,:])
 			winning = np.sum(self.pi[s,:]*self.Q[s,:]) > np.sum(self.piBar[s,:]*self.Q[s,:])
-			delta = self.dW if winning else self.dL
-			for ap in range(self.actions):
+			delta = self.dW if winning else self.dN
+			for ap in range(self.nA):
 				# update estimate of average policy				
 				self.piBar[s,ap] += 1/Cs * (self.pi[s,ap] - self.piBar[s,ap])
 			# step policy closer to optimal policy w.r.t Q
 			dSA = 0
 			if a != aMax:
 				# dSA = -1
-				dSA = -np.min([self.pi[s,a], delta/(self.actions-1)])
+				dSA = -np.min([self.pi[s,a], delta/(self.nA-1)])
 			else:
 				# dSA = 1
-				for ap in range(self.actions):
+				for ap in range(self.nA):
 					if ap != a:
-						dSA += np.min([self.pi[s, ap], delta/(self.actions-1)])
+						dSA += np.min([self.pi[s, ap], delta/(self.nA-1)])
 			# self.pi[s,a] = np.clip(self.pi[s,a] + dSA, 0, np.inf)
 			self.pi[s,a] += dSA
 	def restart(self):
-		self.epsilon = 1.0
-		# self.alpha = 1.0
+		self.E = self.E0
+		self.L = self.L0
+		self.T = self.T0
 		self.Q = np.zeros_like((self.Q))
-		self.nSA = np.zeros_like((self.nSA))
-		self.pi = np.ones_like((self.pi)) / self.actions
-		self.piBar = np.ones_like((self.piBar)) / self.actions
+		self.cSA = np.zeros_like((self.cSA))
+		self.pi = np.ones_like((self.pi)) / self.nA
+		self.piBar = np.ones_like((self.piBar)) / self.nA
+	def reduceExploration(self, i):
+		self.E *= self.dE
+		self.L *= self.dL
+		self.T *= self.dT
 	def saveArchive(self, file):
-		np.savez(file, Q=self.Q, nSA=self.nSA, pi=self.pi, piBar=self.piBar)
+		np.savez(file, Q=self.Q, nSA=self.cSA, pi=self.pi, piBar=self.piBar)
 	def loadArchive(self, file):
 		data = np.load(file)
 		self.Q = data['Q']
-		self.nSA = data['nSA']
+		self.cSA = data['nSA']
 		self.pi = data['pi']
 		self.piBar = data['piBar']
 
 class Hill(RLAgent):
-	def __init__(self, player, actions, states, rep="other", decay=0.1, xi=1, nu=1e-4, gamma=0.9, alpha=1e0, ID="Hill"):
+	def __init__(self, player, nA, nS, rep="other", rew=[1,0,0,0], E=0, T=100, L=1, G=0.9, xi=1, nu=1e-2, dE=0.9, dL=0.9, dT=0.8, ID="Hill"):
 		self.player = player
 		self.ID = ID
-		self.epsilon = 1.0
-		self.alpha = alpha
+		self.state = 0
+		self.G = G
+		self.E = E
+		self.L = L
+		self.T = T
+		self.E0 = E
+		self.L0 = L
+		self.T0 = T
+		self.dE = dE
+		self.dL = dL
+		self.dT = dT
 		self.xi = xi
 		self.nu = nu
-		self.gamma = gamma
-		self.decay = decay
-		self.states = states
-		self.actions = actions
+		self.nS = nS
+		self.nA = nA
 		self.rep = rep
+		self.rew = rew
 		if self.rep == "other":
-			self.Q = np.zeros((2+states, actions))
-			self.pi = np.ones((2+states, actions)) / actions
-			self.nSA = np.zeros((2+states, actions))
-			self.delta = np.zeros((2+states, actions))
-			self.V = np.zeros((2+states))
+			self.Q = np.zeros((2+nS, nA))
+			self.pi = np.ones((2+nS, nA)) / nA
+			self.cSA = np.zeros((2+nS, nA))
+			self.delta = np.zeros((2+nS, nA))
+			self.V = np.zeros((2+nS))
 		elif self.rep == "self-other":
-			self.Q = np.zeros((2+states**2, actions))
-			self.pi = np.ones((2+states**2, actions)) / actions
-			self.nSA = np.zeros((2+states**2, actions))
-			self.delta = np.zeros((2+states**2, actions))
-			self.V = np.zeros((2+states**2))
-	def rlAct(self, state):
-		return np.argmax(self.pi[state, :])
+			self.Q = np.zeros((2+nS**2, nA))
+			self.pi = np.ones((2+nS**2, nA)) / nA
+			self.cSA = np.zeros((2+nS**2, nA))
+			self.delta = np.zeros((2+nS**2, nA))
+			self.V = np.zeros((2+nS**2))
+	def rlAct(self):
+		if self.T > 0:
+			prob = softmax(self.pi[self.state] / self.T)
+			return np.where(np.cumsum(prob) >= np.random.rand())[0][0]
+		else:
+			return np.argmax(self.pi[self.state])
 	def learn(self, history):
-		for t in np.arange(1, len(history['aGives'])):
-			s = self.getState(history, t-1)
-			snew = self.getState(history, t)
-			a = history['aGives'][t] if self.player == "A" else history['bGives'][t]
-			r = history['aRewards'][t] if self.player == "A" else history['bRewards'][t]
-			self.nSA[s,a] += 1
-			alpha = self.alpha / self.nSA[s,a]				
-			# alpha = self.alpha
-			self.Q[s,a] += alpha * (r + self.gamma*np.max(self.Q[snew, :]) - self.Q[s, a])
+		if self.player == "A":
+			myGives = history['aGives']
+			myRewards = history['aRewards']
+			myStates = history['aStates']
+			otherRewards = history['bRewards']
+		else:
+			myGives = history['bGives']
+			myRewards = history['bRewards']
+			myStates = history['bStates']
+			otherRewards = history['aRewards']
+		for t in range(len(myGives)-1):
+			s = myStates[t]
+			snew = myStates[t+1]
+			a = myGives[t]
+			r = ((self.rew[0]*myRewards[t] + 
+				self.rew[1]*otherRewards[t] + 
+				self.rew[2]*np.mean(myRewards) + 
+				self.rew[3]*np.mean(otherRewards)) / 
+				np.sum(self.rew))
+			self.cSA[s,a] += 1
+			# L = self.L / self.cSA[s,a]				
+			L = self.L
+			self.Q[s,a] += L * (r + self.G*np.max(self.Q[snew, :]) - self.Q[s, a])
 			# Hill climbing policy update
 			self.V[s] = np.sum(self.pi[s,:]*self.Q[s,:])
-			for a in range(self.actions):
+			for a in range(self.nA):
 				if (1-self.pi[s,a]) == 0:
 					self.delta[s,a] = (self.Q[s,a] - self.V[s])
 				else:
@@ -393,87 +466,119 @@ class Hill(RLAgent):
 				self.pi[s,a] += self.nu * delta
 			self.pi[s] = softmax(self.pi[s])
 	def restart(self):
-		self.epsilon = 1.0
-		# self.alpha = 1.0
+		self.E = self.E0
+		self.L = self.L0
+		self.T = self.T0
 		self.Q = np.zeros_like((self.Q))
 		self.pi = np.zeros_like((self.pi))
-		self.nSA = np.zeros_like(self.nSA)
+		self.cSA = np.zeros_like(self.cSA)
 		self.delta = np.zeros_like((self.delta))
 		self.V = np.zeros_like((self.V))
+	def reduceExploration(self, i):
+		self.E *= self.dE
+		self.L *= self.dL
+		self.T *= self.dT
 	def saveArchive(self, file):
-		np.savez(file, Q=self.Q, pi=self.pi, nSA=self.nSA, delta=self.delta, V=self.V)
+		np.savez(file, Q=self.Q, pi=self.pi, nSA=self.cSA, delta=self.delta, V=self.V)
 	def loadArchive(self, file):
 		data = np.load(file)
 		self.Q = data['Q']
 		self.pi = data['pi']
-		self.nSA = data['nSA']
+		self.cSA = data['nSA']
 		self.delta = data['delta']
 		self.V = data['V']
 
 
 class ModelBased(RLAgent):
-	def __init__(self, player, actions, states, rep="other", gamma=0.9, decay=0.1, ID="ModelBased"):
+	def __init__(self, player, nA, nS, rep="other", rew=[1,0,0,0], E=0, T=100, G=0.9, dE=0.9, dT=0.9, ID="ModelBased"):
 		self.player = player
 		self.ID = ID
-		self.epsilon = 1.0
-		# self.alpha = 0
-		self.states = states
-		self.actions = actions
-		self.gamma = gamma
-		self.decay = decay
+		self.state = 0
+		self.G = G
+		self.E = E
+		self.T = T
+		self.E0 = E
+		self.T0 = T
+		self.dE = dE
+		self.dT = dT
+		self.nS = nS
+		self.nA = nA
 		self.rep = rep
+		self.rew = rew
 		if self.rep == "other":
-			self.R = np.zeros((2+states, actions))
-			self.T = np.zeros((2+states, actions, 2+states))
-			self.V = np.zeros((2+states))
-			self.nSA = np.zeros((2+states, actions))
-			self.nSAS = np.zeros((2+states, actions, 2+states))
-			self.pi = np.zeros((2+states))
+			self.R = np.zeros((2+nS, nA))
+			self.M = np.zeros((2+nS, nA, 2+nS))
+			self.V = np.zeros((2+nS))
+			self.cSA = np.zeros((2+nS, nA))
+			self.cSAS = np.zeros((2+nS, nA, 2+nS))
+			self.pi = np.zeros((2+nS, nA))
 		elif self.rep == "self-other":
-			self.R = np.zeros((2+states**2, actions))
-			self.T = np.zeros((2+states**2, actions, 2+states**2))
-			self.V = np.zeros((2+states**2))
-			self.nSA = np.zeros((2+states**2, actions))
-			self.nSAS = np.zeros((2+states**2, actions, 2+states**2))
-			self.pi = np.zeros((2+states**2))
-	def rlAct(self, state):
-		return self.pi[state]
+			self.R = np.zeros((2+nS**2, nA))
+			self.M = np.zeros((2+nS**2, nA, 2+nS**2))
+			self.V = np.zeros((2+nS**2))
+			self.cSA = np.zeros((2+nS**2, nA))
+			self.cSAS = np.zeros((2+nS**2, nA, 2+nS**2))
+			self.pi = np.zeros((2+nS**2, nA))
+	def rlAct(self):
+		if self.T > 0:
+			prob = softmax(self.pi[self.state] / self.T)
+			return np.where(np.cumsum(prob) >= np.random.rand())[0][0]
+		else:
+			return self.pi[state]
 	def learn(self, history):
-		for t in np.arange(1, len(history['aGives'])):
-			s = self.getState(history, t-1)
-			snew = self.getState(history, t)
-			a = history['aGives'][t] if self.player == "A" else history['bGives'][t]
-			r = history['aRewards'][t] if self.player == "A" else history['bRewards'][t]
-			self.nSA[s,a] += 1
-			self.nSAS[s,a,s] += 1
-			self.T[s,a,:] = self.nSAS[s,a,:] / self.nSA[s,a]
-			self.R[s,a] = (r + (self.nSA[s,a]-1) * self.R[s,a]) / self.nSA[s,a]
-			nState = self.pi.shape[0]
-			Tpi = np.zeros((nState, nState))
-			Rpi = np.zeros((nState))
-			for si in range(self.pi.shape[0]):
-				a = int(self.pi[si])
-				Tpi[si] = self.T[si,a]
-				Rpi[si] = self.R[si,a]
-			A = np.eye(nState) - self.gamma*Tpi
-			B = Rpi
-			self.V = np.linalg.solve(A, B)
-			self.pi = np.argmax(self.R + self.gamma * (self.T @ self.V), axis=1)
+		if self.player == "A":
+			myGives = history['aGives']
+			myRewards = history['aRewards']
+			myStates = history['aStates']
+			otherRewards = history['bRewards']
+		else:
+			myGives = history['bGives']
+			myRewards = history['bRewards']
+			myStates = history['bStates']
+			otherRewards = history['aRewards']
+		for t in range(len(myGives)-1):
+			s = myStates[t]
+			snew = myStates[t+1]
+			a = myGives[t]
+			r = ((self.rew[0]*myRewards[t] + 
+				self.rew[1]*otherRewards[t] + 
+				self.rew[2]*np.mean(myRewards) + 
+				self.rew[3]*np.mean(otherRewards)) / 
+				np.sum(self.rew))
+			self.cSA[s,a] += 1
+			self.cSAS[s,a,snew] += 1
+			self.M[s,a] = self.cSAS[s,a] / self.cSA[s,a]
+			self.R[s,a] = (r + (self.cSA[s,a]-1) * self.R[s,a]) / self.cSA[s,a]
+			nS = self.pi.shape[0]
+			Mpi = np.zeros((nS, nS))
+			Rpi = np.zeros((nS))
+			for si in range(nS):
+				# ai = int(self.pi[si])
+				ai = int(np.argmax(self.pi[si]))
+				Mpi[si] = self.M[si,ai]
+				Rpi[si] = self.R[si,ai]
+			self.V = np.linalg.solve(np.eye(nS)-self.G*Mpi, Rpi)
+			# self.pi = np.argmax(self.R + self.G * (self.M @ self.V), axis=1)
+			self.pi = self.R + self.G * (self.M @ self.V)
 	def restart(self):
-		self.epsilon = 1.0
+		self.E = self.E0
+		self.T = self.T0
 		self.R = np.zeros_like((self.R))
-		self.T = np.zeros_like((self.T))
+		self.M = np.zeros_like((self.M))
 		self.V = np.zeros_like((self.V))
-		self.nSA = np.zeros_like((self.nSA))
-		self.nSAS = np.zeros_like((self.nSAS))
+		self.cSA = np.zeros_like((self.cSA))
+		self.cSAS = np.zeros_like((self.cSAS))
 		self.pi = np.zeros_like((self.pi))
+	def reduceExploration(self, i):
+		self.E *= self.dE
+		self.T *= self.dT
 	def saveArchive(self, file):
-		np.savez(file, R=self.R, T=self.T, V=self.V, nSA=self.nSA, nSAS=self.nSAS, pi=self.pi)
+		np.savez(file, R=self.R, T=self.M, V=self.V, nSA=self.cSA, nSAS=self.cSAS, pi=self.pi)
 	def loadArchive(self, file):
 		data = np.load(file)
 		self.R = data['R']
-		self.T = data['T']
+		self.M = data['M']
 		self.V = data['V']
-		self.nSA = data['nSA']
-		self.nSAS = data['nSAS']
+		self.cSA = data['nSA']
+		self.cSAS = data['nSAS']
 		self.pi = data['pi']

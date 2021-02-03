@@ -13,9 +13,9 @@ from .agents import *
 from .utils import *
 
 
-popA = ['ModelBased']
-popB = ['ModelBased']
-learn = True
+popA = ['Accumulator']
+popB = ['Accumulator']
+learn = False
 
 class Blob(models.Model):
 	name = models.CharField(max_length=100, blank=True, null=True, default=str)
@@ -37,7 +37,7 @@ class Agent(models.Model):
 		self.learner = learner
 		self.save()
 
-	def getObj(self, game, history, epsilon=0.5, states=30):
+	def getObj(self, game, history, epsilon=0.0, states=30):
 		name = self.name
 		player = self.player
 		learn = "learner" if self.learner else "trained"
@@ -172,7 +172,7 @@ class Game(models.Model):
 		}
 		self.agent.getObj(self, history)
 		# print(self.agent.obj.Q)
-		print(self.agent.obj.pi)
+		# print(self.agent.obj.pi)
 		agentGive, agentKeep = self.agent.obj.act(money, history)
 		self.agentGives += f"{agentGive:d},"
 		self.agentKeeps += f"{agentKeep:d},"
