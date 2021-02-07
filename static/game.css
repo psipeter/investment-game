@@ -1,186 +1,240 @@
-html {
-	font-size: 20px;
-	font-family: 'Oswald', sans-serif; /*comment*/
-	background-color: #C7D3E0;
-}
-
-h2 {
-	font-size: 20px;
-}
-
-.leftright {
-	display: flex;
-	justify-content: space-between;
-}
-
-.grid {
-	position: relative;
-	display: grid;
-	grid-template-columns: 1fr 1fr 1fr;
-	grid-template-rows: 50px;
-}
-
-.right {
+body {
+	width: 100%;
+	height: 100%;
 	margin: 0;
-	position: absolute;
-	top: 50%;
-	width: 33%;
-	-ms-transform: translateY(-50%);
-	transform: translateY(-50%);
-	font-size: 48px;
-	text-align: right;
+	font-size: 20px;
+	font-family: 'Oswald', sans-serif;
+	display: grid;
+	grid-template-rows: repeat(12, 1fr);
+	grid-template-columns: repeat(18, 1fr);
+	background: #d1d1d1;
 }
 
 .left {
-	margin: 0;
-	position: absolute;
-	top: 50%;
-	width: 33%;
-	-ms-transform: translateY(-50%);
-	transform: translateY(-50%);
-	font-size: 48px;
+	grid-column: 4/7;
 	text-align: left;
 }
-
-.leftPlayer{
-	margin: 0;
-	grid-column: 1;
-	text-align: left;
-}
-#whoseMove {
-	margin: 0;
-	color: blue;
-	grid-column: 2;
-	text-align: center;
-}
-.rightPlayer{
-	margin: 0;
-	grid-column: 3;
+.right {
+	grid-column: 13/16;
 	text-align: right;
 }
 
-#sendLeft{
-	font-size: 24px;
-	margin-top: -20%;
-	margin-bottom: 0;
-}
-#sendRight{
-	font-size: 24px;
-	margin-top: -20%;
-	margin-bottom: 0;
-}
-
-.user {
+#aTitle {
 	margin: 0;
-	width: 100%;
-	color: green;
-	/*border: 3px solid green;*/
-}
-
-.agent {
-	margin: 0;
-	width: 100%;
-	color: red;
-	/*border: 3px solid red;*/
-}
-
-.gameOver{
-	margin: 0;
+	grid-row: 1/4;
+	grid-column: 1/10;
 	font-size: 36px;
 	text-align: center;
-	color: blue;
+	border-right: 1px solid black;
+	border-bottom: 3px solid black;
 }
-
-.rotate {
-	transform: rotate(90deg);
-}
-
-.gameOver {
+#bTitle {
 	margin: 0;
-	width: 100%;
-	color: blue;
-	position: absolute;
-	top: 50%;
-	-ms-transform: translateY(-50%);
-	transform: translateY(-50%);
-	font-size: 48px;
+	grid-row: 1/4;
+	grid-column: 10/19;
+	font-size: 36px;
 	text-align: center;
+	border-left: 1px solid black;
+	border-bottom: 3px solid black;	
 }
 
-#submit{
-	width: 50%;
-	height: 200%;
+#aReward {
+	width: 100%;
+	margin: 0;
+	grid-row: 5;
+	font-size: 36px;
+}
+#bReward {
+	width: 100%;
+	margin: 0;
+	grid-row: 5;
+	font-size: 36px;
+}
+#give100 {
+	width: 100%;
+	margin: 0;
+	grid-row: 8;
+	font-size: 18px;
+	align-self: flex-end;
+}
+#keep100 {
+	width: 100%;
+	margin: 0;
+	grid-row: 8;
+	font-size: 18px;
+	align-self: flex-end;
+}
+
+
+
+#form {
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	grid-row: 6/8;
+	grid-column: 4/16;
+	border-radius: 50px;
+}
+#slider {
+	margin: 0;
+	margin-left: -2.5%;
+	width: 5%;
+	height: 112%;
+	border-radius: 50px;
+	background: #0005a3;
+}
+#submit {
+	width: 100%;
+	height: 100%;
+	grid-row: 2/3;
+	grid-column: 9/11;
 	margin: 0;
 	padding: 0;
-	margin-top: 20%;
-	margin-left: 25%;
-	color: inherit;
-	font-size: inherit;
-	border: solid black;
-	background-color: #52919c;
-}
-
-#inside {
-	width: 3em;
-	height: 1.6em;
-	top: 50%;
-	margin-top: -.8em;
 	text-align: center;
-	line-height: 1.6em;
+	font-size: 18px;
+	border: 3px solid black;
+	background: #ffd500;
+	border-radius: 50px;
 }
 
-#end {
-	font-size: 24px;
-	margin-top: 10%;	
-	display: flex;
-	justify-content: space-around;	
-}
-
-.finalScore {
-	color: grey;
-}
-
-#moveTable {
-	margin-top: 15%;
+/* https://dev.to/vaibhavkhulbe/let-s-make-and-eat-those-css3-progress-bars-217a */
+.loading-bar {
+	grid-row: 6/8;
+	grid-column: 4/16;
 	position: relative;
+	margin: 0 auto;
+	height: 100%;
+	width: 100%;
+	border-radius: 50px;
+}
+span {
+	display: block;
+	position: relative;
+	height: 100%;
+	width: 100%;
+	border-radius: 50px;
+	background-image: linear-gradient(to bottom, #a1c5ff, #2e38ff 60%);
+	box-shadow:
+	inset 0 2px 9px  rgba(255,255,255,0.3),
+	inset 0 -2px 6px rgba(0,0,0,0.4);
+	overflow: hidden;
+}
+span:after {
+	content: "";
+	position: absolute;
+	top: 0px; left: 0; bottom: 0; right: 0;
+	background-image: linear-gradient(
+		-45deg, 
+		rgba(255, 255, 255, .2) 25%, 
+		transparent 25%, 
+		transparent 50%, 
+		rgba(255, 255, 255, .2) 50%, 
+		rgba(255, 255, 255, .2) 75%,
+		transparent 75%, 
+		transparent
+	);
+	z-index: 1;
+	background-size: 50px 50px;
+	border-top-right-radius: 8px;
+	border-bottom-right-radius: 8px;
+	border-top-left-radius: 20px;
+	border-bottom-left-radius: 20px;
+	overflow: hidden;
+}
+.loading-bar > span:after, .animate > span > span { 
+	animation: load 1s infinite;
+}
+@keyframes load {
+	0% {background-position: 0 0;}
+	100% {background-position: 50px 50px;}
 }
 
-.table {
+#gameOver {
+	margin: 0;
+	width: 100%;
+	height: 100%;
+	grid-row: 6/8;
+	grid-column: 6/14;
+	color: blue;
+	font-size: 48px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+#aScore {
+	margin: 0;
+	width: 100%;
+	height: 100%;
+	grid-row: 6/8;
+	grid-column: 1/6;
+	font-size: 48px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+#bScore {
+	margin: 0;
+	width: 100%;
+	height: 100%;
+	grid-row: 6/8;
+	grid-column: 14/19;
+	font-size: 48px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+#flair {
+	margin: 0;
+	width: 100%;
+	height: 100%;
+	grid-row: 4/6;
+	grid-column: 1/19;
+	font-size: 24px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+#home {
+	margin: 0;
+	width: 100%;
+	height: 100%;
+	grid-row: 8/10;
+	grid-column: 1/10;
+	font-size: 24px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+#play {
+	margin: 0;
+	width: 100%;
+	height: 100%;
+	grid-row: 8/10;
+	grid-column: 10/19;
+	font-size: 24px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+
+#table {
+	justify-content: center;
+	grid-row: 10/13;
+	grid-column: 1/19;
 	width: 100%;
 	text-align: center;
 	table-layout: fixed;
+	border-top: 3px solid black;
+	border-bottom: 3px solid black;
+	background: white;
 }
+.green {color: green;}
+.red {color: red;}
+.black {color: black;}
+.green-to-red {background: linear-gradient(90deg, green, red);}
+.red-to-green {background: linear-gradient(90deg, red, green);}
 
-#headcolumn {
-	text-align: left;
-}
-
-#action {
-	text-align: left;
-}
-
-.green {
-	color: green;
-}
-
-.red {
-	color: red;
-}
-
-.black {
-	color: black;
-}
-
-#loader {
-	margin-top: 0%;
-	margin-left: 25%;
-	border: 16px solid grey;
-	border-top: 16px solid blue;
-	border-radius: 50%;
-	width: 50px;
-	height: 50px;
-	animation: spin 2s linear infinite;
-}
 
 @keyframes spin {
   0% { transform: rotate(0deg); }

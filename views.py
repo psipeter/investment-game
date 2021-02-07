@@ -135,29 +135,19 @@ def user(request, username):
 
 @login_required
 def startGame(request):
-	# if request.user.currentGame:
-	# 	return redirect('continue') # enforce one currentGame
 	# todo: special games if request.user.doneRequiredGames is False
 	game = Game.objects.create()
 	game.start(request.user)
 	context = {
 		'game': game,
-		'userGives': list(game.movesToArray("user", "give")),
-		'userKeeps': list(game.movesToArray("user", "keep")),
-		'agentGives': list(game.movesToArray("agent", "give")),
-		'agentKeeps': list(game.movesToArray("agent", "keep")),
-	}
-	return render(request, "game.html", context=context)
-
-@login_required
-def continueGame(request):
-	game = request.user.currentGame
-	context = {
-		'game': game,
-		'userGives': list(game.movesToArray("user", "give")),
-		'userKeeps': list(game.movesToArray("user", "keep")),
-		'agentGives': list(game.movesToArray("agent", "give")),
-		'agentKeeps': list(game.movesToArray("agent", "keep")),
+		'A': game.user if game.userRole == "A" else game.agent.name,
+		'B': game.user if game.userRole == "B" else game.agent.name,
+		'userGives': list(game.historyToArray("user", "give")),
+		'userKeeps': list(game.historyToArray("user", "keep")),
+		'userRewards': list(game.historyToArray("user", "reward")),
+		'agentGives': list(game.historyToArray("agent", "give")),
+		'agentKeeps': list(game.historyToArray("agent", "keep")),
+		'agentRewards': list(game.historyToArray("agent", "reward")),
 	}
 	return render(request, "game.html", context=context)
 
@@ -169,20 +159,20 @@ def updateGame(request):
 	game = request.user.currentGame
 	game.step(userGive, userKeep, userTime)
 	data = {
-		'userGives': str(list(game.movesToArray("user", "give"))),
-		'userKeeps': str(list(game.movesToArray("user", "keep"))),
-		'userScore': str(game.userScore),
-		'agentGives': str(list(game.movesToArray("agent", "give"))),
-		'agentKeeps': str(list(game.movesToArray("agent", "keep"))),
-		'agentScore': str(game.agentScore),
+		'userGives': str(list(game.historyToArray("user", "give"))),
+		'userKeeps': str(list(game.historyToArray("user", "keep"))),
+		'userRewards': str(list(game.historyToArray("user", "reward"))),
+		'agentGives': str(list(game.historyToArray("agent", "give"))),
+		'agentKeeps': str(list(game.historyToArray("agent", "keep"))),
+		'agentRewards': str(list(game.historyToArray("agent", "reward"))),
 	}
 	if game.complete:
 		request.user.currentGame = None
 		request.user.save()
 		# reinforcement learning from user's data
 		# todo: celery, spawn subprocess, or add loading bar
-		if game.complete and game.agent.learn:
-			game.agent.learn(game)
+		# if game.agent.learn:
+		# 	game.agent.learn(game)
 		data['complete'] = True
 	else:		
 		data['complete'] = False

@@ -38,18 +38,6 @@ class HardcodedAgent(AgentBase):
 		return give, keep
 	def reset(self):
 		self.state = 0
-	# instead, just load state from history
-
-	# def replayHistory(self, history):
-	# 	steps = min(len(history['aGives']), len(history['bGives']))
-	# 	for t in range(steps):
-	# 		historySlice = {
-	# 			'aGives': history['aGives'][:t+1],
-	# 			'aKeeps': history['aKeeps'][:t+1],
-	# 			'bGives': history['bGives'][:t+1],
-	# 			'bKeeps': history['bKeeps'][:t+1],
-	# 		}
-	# 		self.update(historySlice)
 
 class Generous(HardcodedAgent):
 	def __init__(self, player, mean=1.0, std=0.05, E=0, ID="Generous"):
@@ -107,18 +95,6 @@ class T4T(HardcodedAgent):
 
 
 class RLAgent(AgentBase):
-	def act(self, money, history):
-		self.setState(history, -1)
-		if money == 0:
-			a = 0
-		elif np.random.rand() < self.E:
-			a = np.random.randint(0, money+1)
-		else:
-			a = self.rlAct()
-		give = int(np.clip(a, 0, money))
-		keep = int(money - give)
-		# print('act', self.state, give)
-		return give, keep
 	def setState(self, history, t):
 		if len(history['aGives'])==0 or len(history['bGives'])==0:
 			self.state = 0  # no history state
@@ -142,18 +118,14 @@ class RLAgent(AgentBase):
 		maxState = 0 if self.nS <= 1 else self.nS-1
 		myState = int(myRatio * maxState)
 		otherState = int(otherRatio * maxState)
-		if self.rep == "other":
-			state = otherState
-			assert 0 <= state <= self.nS, "state outside limit"
-		elif self.rep == "self-other":
-			state = myState + self.nS*otherState
-			assert 0 <= state <= self.nS**2, "state outside limit"
+		state = otherState
+		assert 0 <= state <= self.nS, "state outside limit"
 		self.state = 2+state
 	def reset(self):
 		self.state = 0
 
 class Bandit(RLAgent):
-	def __init__(self, player, nA, rep="other", rew=[1,0,0,0], E=0, T=100, dE=0.9, dT=0.9, ID="Bandit"):
+	def __init__(self, player, nA, E=0, T=100, rS=1, rO=0, dE=0.9, dT=0.9, ID="Bandit"):
 		self.player = player
 		self.nA = nA
 		self.state = 0
@@ -163,18 +135,26 @@ class Bandit(RLAgent):
 		self.T = T  # temperature for Boltzmann exploration
 		self.E0 = E
 		self.T0 = T
-		self.rep = rep  # representation sheme for state
-		self.rew = rew  # reward scheme: [self_now, other_now, self_mean, other_mean]
+		self.rS = rS  # weight for selfish reward
+		self.rO = rO  # weight for prosocial reward
 		self.dE = dE  # epsilon decay
 		self.dT = dT  # temperature decay
 		self.Q = np.zeros((nA))  # value function
 		self.cA = np.zeros((nA))  # visits to each action
-	def rlAct(self):
-		if self.T > 0:
+	def act(self, money, history):
+		self.setState(history, -1)
+		if money == 0:
+			a = 0
+		elif np.random.rand() < self.E:
+			a = np.random.randint(0, money+1)
+		elif self.T > 0:
 			prob = softmax(self.Q / self.T)
-			return np.where(np.cumsum(prob) >= np.random.rand())[0][0]
+			a = np.where(np.cumsum(prob) >= np.random.rand())[0][0]
 		else:
-			return np.argmax(self.Q)
+			a = np.argmax(self.Q)
+		give = int(np.clip(a, 0, money))
+		keep = int(money - give)
+		return give, keep
 	def learn(self, history):
 		if self.player == "A":
 			myGives = history['aGives']
@@ -190,11 +170,7 @@ class Bandit(RLAgent):
 			s = myStates[t]
 			snew = myStates[t+1]
 			a = myGives[t]
-			r = ((self.rew[0]*myRewards[t] + 
-				self.rew[1]*otherRewards[t] + 
-				self.rew[2]*np.mean(myRewards) + 
-				self.rew[3]*np.mean(otherRewards)) / 
-				np.sum(self.rew))
+			r = (self.rS*myRewards[t]+self.rO*otherRewards[t])/(self.rS+self.rO)
 			self.cA[a] += 1
 			self.Q[a] = (r + self.cA[a]*self.Q[a]) / (self.cA[a] + 1)
 	def reduceExploration(self, i):
@@ -215,7 +191,7 @@ class Bandit(RLAgent):
 
 
 class QLearn(RLAgent):
-	def __init__(self, player, nA, nS, rep="other", rew=[1,0,0,0], E=0, T=100, L=1, G=0.9, dE=0.9, dL=0.9, dT=0.9, ID="QLearn"):
+	def __init__(self, player, nA, nS, E=0, T=100, L=1, G=0.9, rS=1, rO=0, dE=0.9, dL=0.9, dT=0.9, ID="QLearn"):
 		self.player = player
 		self.ID = ID
 		self.nA = nA
@@ -231,20 +207,24 @@ class QLearn(RLAgent):
 		self.dE = dE
 		self.dL = dL
 		self.dT = dT
-		self.rep = rep
-		self.rew = rew
-		if self.rep == "other":
-			self.Q = np.zeros((2+nS, nA))  # +2 for null nS (see setState())
-			self.cSA = np.zeros((2+nS, nA))
-		elif self.rep == "self-other":
-			self.Q = np.zeros((2+nS**2, nA))  # +2 for null nS (see setState())
-			self.cSA = np.zeros((2+nS**2, nA))
-	def rlAct(self):
-		if self.T > 0:
+		self.rS = rS  # weight for selfish reward
+		self.rO = rO  # weight for prosocial reward
+		self.Q = np.zeros((2+nS, nA))
+		self.cSA = np.zeros((2+nS, nA))
+	def act(self, money, history):
+		self.setState(history, -1)
+		if money == 0:
+			a = 0
+		elif np.random.rand() < self.E:
+			a = np.random.randint(0, money+1)
+		elif self.T > 0:
 			prob = softmax(self.Q[self.state] / self.T)
-			return np.where(np.cumsum(prob) >= np.random.rand())[0][0]
+			a = np.where(np.cumsum(prob) >= np.random.rand())[0][0]
 		else:
-			return np.argmax(self.Q[self.state, :])
+			a = np.argmax(self.Q[self.state])
+		give = int(np.clip(a, 0, money))
+		keep = int(money - give)
+		return give, keep
 	def learn(self, history):
 		if self.player == "A":
 			myGives = history['aGives']
@@ -260,11 +240,7 @@ class QLearn(RLAgent):
 			s = myStates[t]
 			snew = myStates[t+1]
 			a = myGives[t]
-			r = ((self.rew[0]*myRewards[t] + 
-				self.rew[1]*otherRewards[t] + 
-				self.rew[2]*np.mean(myRewards) + 
-				self.rew[3]*np.mean(otherRewards)) / 
-				np.sum(self.rew))
+			r = (self.rS*myRewards[t]+self.rO*otherRewards[t])/(self.rS+self.rO)
 			self.cSA[s,a] += 1
 			# L = self.L / self.cSA[s,a]
 			L = self.L
@@ -289,7 +265,7 @@ class QLearn(RLAgent):
 
 # from Table 5,6 of Bowling and Veloso 2002
 class Wolf(RLAgent):
-	def __init__(self, player, nA, nS, rep="other", rew=[1,0,0,0], E=0, T=100, L=1, G=0.9, dE=0.9, dL=0.9, dT=0.9, dW=1e-1, dN=2e-1, ID="Wolf"):
+	def __init__(self, player, nA, nS, E=0, T=100, L=1, G=0.9, rS=1, rO=0, dE=0.9, dL=0.9, dT=0.9, dW=1e-1, dN=2e-1, ID="Wolf"):
 		self.player = player
 		self.ID = ID
 		self.state = 0
@@ -307,24 +283,26 @@ class Wolf(RLAgent):
 		self.dT = dT
 		self.dW = dW
 		self.dN = dN
-		self.rep = rep
-		self.rew = rew
-		if self.rep == "other":
-			self.Q = np.zeros((2+nS, nA))  # +2 for null nS (see setState())
-			self.cSA = np.zeros((2+nS, nA))
-			self.pi = np.ones((2+nS, nA)) / nA
-			self.piBar = np.ones((2+nS, nA)) / nA
-		elif self.rep == "self-other":
-			self.Q = np.zeros((2+nS**2, nA))
-			self.cSA = np.zeros((2+nS**2, nA))
-			self.pi = np.ones((2+nS**2, nA)) / nA
-			self.piBar = np.ones((2+nS**2, nA)) / nA
-	def rlAct(self):
-		if self.T > 0:
+		self.rS = rS  # weight for selfish reward
+		self.rO = rO  # weight for prosocial reward
+		self.Q = np.zeros((2+nS, nA))  # +2 for null nS (see setState())
+		self.cSA = np.zeros((2+nS, nA))
+		self.pi = np.ones((2+nS, nA)) / nA
+		self.piBar = np.ones((2+nS, nA)) / nA
+	def act(self, money, history):
+		self.setState(history, -1)
+		if money == 0:
+			a = 0
+		elif np.random.rand() < self.E:
+			a = np.random.randint(0, money+1)
+		elif self.T > 0:
 			prob = softmax(self.pi[self.state] / self.T)
-			return np.where(np.cumsum(prob) >= np.random.rand())[0][0]
+			a = np.where(np.cumsum(prob) >= np.random.rand())[0][0]
 		else:
-			return np.argmax(self.pi[self.state])
+			a = np.argmax(self.pi[self.state])
+		give = int(np.clip(a, 0, money))
+		keep = int(money - give)
+		return give, keep
 	def learn(self, history):
 		if self.player == "A":
 			myGives = history['aGives']
@@ -340,11 +318,7 @@ class Wolf(RLAgent):
 			s = myStates[t]
 			snew = myStates[t+1]
 			a = myGives[t]
-			r = ((self.rew[0]*myRewards[t] + 
-				self.rew[1]*otherRewards[t] + 
-				self.rew[2]*np.mean(myRewards) + 
-				self.rew[3]*np.mean(otherRewards)) / 
-				np.sum(self.rew))
+			r = (self.rS*myRewards[t]+self.rO*otherRewards[t])/(self.rS+self.rO)
 			# standard Q-learning update of value function
 			self.cSA[s,a] += 1
 			# L = self.L / self.cSA[s,a]
@@ -392,7 +366,7 @@ class Wolf(RLAgent):
 		self.piBar = data['piBar']
 
 class Hill(RLAgent):
-	def __init__(self, player, nA, nS, rep="other", rew=[1,0,0,0], E=0, T=100, L=1, G=0.9, xi=1, nu=1e-2, dE=0.9, dL=0.9, dT=0.8, ID="Hill"):
+	def __init__(self, player, nA, nS, E=0, T=100, L=1, G=0.9, rS=1, rO=0, xi=1, nu=1e-2, dE=0.9, dL=0.9, dT=0.8, ID="Hill"):
 		self.player = player
 		self.ID = ID
 		self.state = 0
@@ -410,26 +384,27 @@ class Hill(RLAgent):
 		self.nu = nu
 		self.nS = nS
 		self.nA = nA
-		self.rep = rep
-		self.rew = rew
-		if self.rep == "other":
-			self.Q = np.zeros((2+nS, nA))
-			self.pi = np.ones((2+nS, nA)) / nA
-			self.cSA = np.zeros((2+nS, nA))
-			self.delta = np.zeros((2+nS, nA))
-			self.V = np.zeros((2+nS))
-		elif self.rep == "self-other":
-			self.Q = np.zeros((2+nS**2, nA))
-			self.pi = np.ones((2+nS**2, nA)) / nA
-			self.cSA = np.zeros((2+nS**2, nA))
-			self.delta = np.zeros((2+nS**2, nA))
-			self.V = np.zeros((2+nS**2))
-	def rlAct(self):
-		if self.T > 0:
+		self.rS = rS  # weight for selfish reward
+		self.rO = rO  # weight for prosocial reward
+		self.Q = np.zeros((2+nS, nA))
+		self.pi = np.ones((2+nS, nA)) / nA
+		self.cSA = np.zeros((2+nS, nA))
+		self.delta = np.zeros((2+nS, nA))
+		self.V = np.zeros((2+nS))
+	def act(self, money, history):
+		self.setState(history, -1)
+		if money == 0:
+			a = 0
+		elif np.random.rand() < self.E:
+			a = np.random.randint(0, money+1)
+		elif self.T > 0:
 			prob = softmax(self.pi[self.state] / self.T)
-			return np.where(np.cumsum(prob) >= np.random.rand())[0][0]
+			a = np.where(np.cumsum(prob) >= np.random.rand())[0][0]
 		else:
-			return np.argmax(self.pi[self.state])
+			a = np.argmax(self.pi[self.state])
+		give = int(np.clip(a, 0, money))
+		keep = int(money - give)
+		return give, keep
 	def learn(self, history):
 		if self.player == "A":
 			myGives = history['aGives']
@@ -445,11 +420,7 @@ class Hill(RLAgent):
 			s = myStates[t]
 			snew = myStates[t+1]
 			a = myGives[t]
-			r = ((self.rew[0]*myRewards[t] + 
-				self.rew[1]*otherRewards[t] + 
-				self.rew[2]*np.mean(myRewards) + 
-				self.rew[3]*np.mean(otherRewards)) / 
-				np.sum(self.rew))
+			r = (self.rS*myRewards[t]+self.rO*otherRewards[t])/(self.rS+self.rO)
 			self.cSA[s,a] += 1
 			# L = self.L / self.cSA[s,a]				
 			L = self.L
@@ -490,7 +461,7 @@ class Hill(RLAgent):
 
 
 class ModelBased(RLAgent):
-	def __init__(self, player, nA, nS, rep="other", rew=[1,0,0,0], E=0, T=100, G=0.9, dE=0.9, dT=0.9, ID="ModelBased"):
+	def __init__(self, player, nA, nS, E=0, T=100, G=0.9, rS=1, rO=0, dE=0.9, dT=0.9, ID="ModelBased"):
 		self.player = player
 		self.ID = ID
 		self.state = 0
@@ -503,28 +474,28 @@ class ModelBased(RLAgent):
 		self.dT = dT
 		self.nS = nS
 		self.nA = nA
-		self.rep = rep
-		self.rew = rew
-		if self.rep == "other":
-			self.R = np.zeros((2+nS, nA))
-			self.M = np.zeros((2+nS, nA, 2+nS))
-			self.V = np.zeros((2+nS))
-			self.cSA = np.zeros((2+nS, nA))
-			self.cSAS = np.zeros((2+nS, nA, 2+nS))
-			self.pi = np.zeros((2+nS, nA))
-		elif self.rep == "self-other":
-			self.R = np.zeros((2+nS**2, nA))
-			self.M = np.zeros((2+nS**2, nA, 2+nS**2))
-			self.V = np.zeros((2+nS**2))
-			self.cSA = np.zeros((2+nS**2, nA))
-			self.cSAS = np.zeros((2+nS**2, nA, 2+nS**2))
-			self.pi = np.zeros((2+nS**2, nA))
-	def rlAct(self):
-		if self.T > 0:
+		self.rS = rS  # weight for selfish reward
+		self.rO = rO  # weight for prosocial reward
+		self.R = np.zeros((2+nS, nA))
+		self.M = np.zeros((2+nS, nA, 2+nS))
+		self.V = np.zeros((2+nS))
+		self.cSA = np.zeros((2+nS, nA))
+		self.cSAS = np.zeros((2+nS, nA, 2+nS))
+		self.pi = np.zeros((2+nS, nA))
+	def act(self, money, history):
+		self.setState(history, -1)
+		if money == 0:
+			a = 0
+		elif np.random.rand() < self.E:
+			a = np.random.randint(0, money+1)
+		elif self.T > 0:
 			prob = softmax(self.pi[self.state] / self.T)
-			return np.where(np.cumsum(prob) >= np.random.rand())[0][0]
+			a = np.where(np.cumsum(prob) >= np.random.rand())[0][0]
 		else:
-			return self.pi[state]
+			a = np.argmax(self.pi[self.state])
+		give = int(np.clip(a, 0, money))
+		keep = int(money - give)
+		return give, keep
 	def learn(self, history):
 		if self.player == "A":
 			myGives = history['aGives']
@@ -540,11 +511,7 @@ class ModelBased(RLAgent):
 			s = myStates[t]
 			snew = myStates[t+1]
 			a = myGives[t]
-			r = ((self.rew[0]*myRewards[t] + 
-				self.rew[1]*otherRewards[t] + 
-				self.rew[2]*np.mean(myRewards) + 
-				self.rew[3]*np.mean(otherRewards)) / 
-				np.sum(self.rew))
+			r = (self.rS*myRewards[t]+self.rO*otherRewards[t])/(self.rS+self.rO)
 			self.cSA[s,a] += 1
 			self.cSAS[s,a,snew] += 1
 			self.M[s,a] = self.cSAS[s,a] / self.cSA[s,a]

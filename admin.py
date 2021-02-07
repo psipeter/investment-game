@@ -7,9 +7,11 @@ from .models import Game, Agent, User, Blob
 @admin.register(Game)
 class Game(admin.ModelAdmin):
 	list_display = ('uuid',
-		'user', 'userRole', 'userScore',
-		'get_agent', 'agentRole', 'agentScore',
-		'date', 'userGives', 'userKeeps', 'agentGives', 'agentKeeps', 'userTimes')
+		'user', 'userRole',
+		'get_agent', 'agentRole',
+		'date',
+		'userGives', 'userKeeps', 'userRewards', 'userTimes',
+		'agentGives', 'agentKeeps', 'agentRewards')
 	ordering = ('-date',)
 	def get_agent(self, obj):
 		return obj.agent.name
@@ -18,7 +20,7 @@ class Game(admin.ModelAdmin):
 
 @admin.register(Agent)
 class Agent(admin.ModelAdmin):
-	list_display = ('name','player','learner','created')
+	list_display = ('name','player','created')
 
 @admin.register(User)
 class User(UserAdmin):
