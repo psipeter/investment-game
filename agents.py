@@ -62,7 +62,7 @@ class Greedy(HardcodedAgent):
 		self.state = np.random.normal(self.mean, self.std)
 
 class T4T(HardcodedAgent):
-	def __init__(self, player, F=0.5, P=1.0, E=0, ID="T4T"):
+	def __init__(self, player, F=1.0, P=1.0, E=0, ID="T4T"):
 		self.player = player
 		self.ID = ID
 		self.F = F  # rate of forgiveness (state increase with opponent generosity)

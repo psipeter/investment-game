@@ -9,7 +9,8 @@
 </head>
 
 <body>
-	<h1>Investment Game Webapp</h1>
+	<div id="wrapper">
+	<h1>Investment Game</h1>
 
 	<form id="loginForm "method="post">
 		{% csrf_token %}
@@ -26,6 +27,7 @@
 	{% elif form.errors.password %}
 		<p class="center">Password incorrect</p>
 	{% endif %}
+	
 	{% if next %}
 		<p class="center">Please login to see this page.</p>
 	{% endif %}
@@ -37,6 +39,7 @@
 	<div class="other-btn">
 		<button id="reset">Forgot your password?</button>
 		<button id="register">Sign up</button>
+	</div>
 	</div>
 
 	<script type="text/javascript">

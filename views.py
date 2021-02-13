@@ -7,8 +7,11 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.conf import settings
 from django.urls import reverse
-from .models import Game, User
+from .models import Game, User, Feedback
 from game.forms import LoginForm, CreateForm, ProfileForm, ResetForm, FeedbackForm
+from datetime import datetime
+from .parameters import *
+# Authentication
 
 def login(request):
 	if request.method == 'POST':
@@ -31,13 +34,16 @@ def login(request):
 		form = LoginForm()
 		if 'next' in request.GET:
 			context = {'form':form, 'next': request.GET['next']}
+		# todo: added "logged out" message
+		# todo: added "password reset" message
 		else:
 			context = {'form':form}
 		return render(request, 'login.html', context)
 
 def logout(request):
 	auth_logout(request)
-	return render(request, 'logout.html')
+	return redirect('login')
+	# return render(request, 'logout.html')
 
 def reset(request):
 	if request.method == 'POST':
@@ -48,58 +54,70 @@ def reset(request):
 			user = User.objects.get(username=username)
 			user.set_password(password)
 			user.save()
-			return redirect('reset_done')
+			return redirect('login')
 	else:
 		form = ResetForm()
 	return render(request, 'reset.html', {'form': form})
 
-def reset_done(request):
-	return render(request, 'reset_done.html')
+
+# Account Creation
 
 def information(request):
-	return render(request, "information.html", context={})
+	return render(request, "information.html")
 
 def consent_register(request):
+	# request.user.doneConsent = True
+	# request.user.save()
 	if request.method == 'POST':
 		form = CreateForm(request.POST)
 		if form.is_valid():
 			user = form.save()
 			user.save()
 			auth_login(request, user)
-			user.doneInformation = True
-			user.doneConsent = True
+			user.doneConsent = datetime.now()
 			user.save()
 			return redirect('home')
 	else:
 		form = CreateForm()
 	return render(request, 'consent_register.html', {'form': form})
 
+def consent_signed(request):
+	return render(request, "consent_signed.html")
+
+
+# Main Page Links
+
 @login_required
 def tutorial(request):
-	request.user.doneTutorial = True  # todo
+	request.user.doneTutorial = datetime.now()
 	request.user.save()
 	return render(request, "tutorial.html")
 
 @login_required
+def stats(request):
+	figures = request.user.makeFigs()
+	return render(request, "stats.html", context=figures)
+
+@login_required
 def cash_out(request):
-	user = request.user
-	return render(request, "cash_out.html", {"user": user})
+	request.user.doneCash = datetime.now()
+	request.user.save()
+	return render(request, "cash_out.html")
 
 @login_required
 def feedback(request):
 	if request.method == 'POST':
 		form = FeedbackForm(request.POST)
 		if form.is_valid():
-			request.user.feedback = request.POST.get('feedback')
-			request.user.save()
+			text = request.POST.get('feedback')
+			print(text)
+			feedback = Feedback.objects.create()
+			feedback.text = text
+			feedback.save()
 			return redirect('home')
 	else:
 		form = FeedbackForm()
 	return render(request, "feedback.html", {'form': form})
-
-@login_required
-def consent_signed(request):
-	return render(request, "consent_signed.html")
 
 @login_required
 def survey(request):
@@ -107,7 +125,7 @@ def survey(request):
 		form = ProfileForm(request.POST, instance=request.user)
 		if form.is_valid():
 			form.save()
-			request.user.doneSurvey = True
+			request.user.doneSurvey = datetime.now()
 			request.user.save()
 			return redirect('home')
 	else:
@@ -116,26 +134,28 @@ def survey(request):
 
 @login_required
 def home(request):
-	username = request.user.username
-	return redirect('users/%s'%username)
-
-@login_required
-def user(request, username):
-	if request.user.username != username:
-		return redirect('home')  # todo: add warning
-	request.user.checkRequirements()
-	requiredGames = min(request.user.gamesPlayed, 3)
-	bonusGames = max(min(request.user.gamesPlayed, 63)-3, 0)
+	request.user.setProgress()
 	context = {
-		'user': request.user,
+		'username': request.user,
 		'path': request.path,
-		'requiredGames': requiredGames,
-		'bonusGames': bonusGames}
+		'N_REQUIRED': N_REQUIRED,
+		'N_BONUS': N_BONUS,
+		'nRequired': request.user.nRequired,
+		'nBonus': request.user.nBonus,
+		'doneConsent': request.user.doneConsent,
+		'doneSurvey': request.user.doneSurvey,
+		'doneTutorial': request.user.doneTutorial,
+		'doneRequired': request.user.doneRequired,
+		'doneBonus': request.user.doneBonus,
+		'doneCash': request.user.doneCash,
+		}
 	return render(request, 'home.html', context)
+
+
+# Game Links
 
 @login_required
 def startGame(request):
-	# todo: special games if request.user.doneRequiredGames is False
 	game = Game.objects.create()
 	game.start(request.user)
 	context = {
@@ -169,11 +189,21 @@ def updateGame(request):
 	if game.complete:
 		request.user.currentGame = None
 		request.user.save()
-		# reinforcement learning from user's data
-		# todo: celery, spawn subprocess, or add loading bar
-		# if game.agent.learn:
-		# 	game.agent.learn(game)
 		data['complete'] = True
+		request.user.setProgress()
 	else:		
 		data['complete'] = False
+	# update message to user if they finished the last game in a batch
+	if game.agent.name == "tutorial" and request.user.doneTutorial:
+		data['doneGames'] = True
+		data['message'] = "Tutorial Games Complete!"
+	elif game.agent.name == "required" and request.user.doneRequired:
+		data['doneGames'] = True
+		data['message'] = "Required Games Complete!"
+	elif request.user.doneTutorial and request.user.doneRequired and request.user.doneBonus:
+		data['doneGames'] = True
+		data['message'] = "Bonus Games Complete!"
+	else:
+		data['doneGames'] = False
+		data['message'] = None		
 	return JsonResponse(data)

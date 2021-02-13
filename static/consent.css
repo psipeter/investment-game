@@ -1,52 +1,63 @@
-html {
+body {
+	width: 100%;
+	height: 100%;
+	margin: 0;
 	font-size: 16px;
-	font-family: 'Oswald', sans-serif; /*comment*/
-	background-color: #C7D3E0;
+	font-family: 'Oswald', sans-serif;
+	background: #d1d1d1;
+	text-align: justify;
 }
 
 h1 {
 	margin: 0;
-	padding: 20px 0;
+	font-size: 36px;
 	color: #00539F;
-	font-size: 32px;
 	text-align: center;
-	text-shadow: 1px 1px 1px black;
 }
 
-
-.justify {
-	text-align: justify;
+#create {
+	margin-top: 2%;
+	text-align: center;
+	color: red;
+}
+#wrapper {
+	display: flex-box;
+	background: #ccfbfc;
+	width: 80%;
+	height: 60%;
+	margin-top: 10%;
+	margin-left: 10%;
+	border: 1px solid black;
+	border-radius: 25px;
 }
 
-.main {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	column-gap: 16px;
+#consentForm {
+	width: 80%;
+	margin-left: 10%;
 }
-.mainright {
-	margin: 0;
-	grid-column: 2;
-	grid-row: 1;
-	text-align: left;
+.f1 {
+	padding-left: 8%;
 }
-.mainleft {
-	margin: 0;
-	margin-top: 8px;
-	grid-column: 1;
-	grid-row: 1;
-	text-align: right;
+#consentWrapper {
+	width: 100%;
+	display: flex;
 }
-
-input {
-	font-size: inherit;
-	font-family: inherit;
+#consentButton {
+	font-size: 16px;
+	margin-top: 3%;
+	margin-bottom: 3%;
+	margin-left: 25%;
 	width: 50%;
+	border: 1px solid black;
+	background: #ffd500;
+	border-radius: 50px;
 }
 
-
-.errorlist {
-	font-size: 12px;
+.red {
 	color: red;
 	text-align: center;
-	list-style: none;	
+}
+
+.center {
+	text-align: center;
 }

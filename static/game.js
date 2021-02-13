@@ -3,9 +3,12 @@ $(function() {  //on page load
     // initialization and globals
     let maxUser;
     let maxAgent;
-    let turnTime = 500;  // ms
+    let turnTime = 100 + 600*Math.random();  // ms
+    let waitTime = 200;
     let startTime = performance.now();
     let endTime = performance.now();
+    let doneGames = false
+    let message = null
     complete = false
     // initial game conditions (if continued or agent moves first)
     function strToNum(arr){
@@ -67,7 +70,7 @@ $(function() {  //on page load
     });
     createTable();
     if (userRole == "A") {switchToUser();}
-    else {switchToAgent();}
+    else {switchToAgent(turnTime);}
 
     // Populate the move table
     function createTable() {
@@ -171,7 +174,7 @@ $(function() {  //on page load
         startTime = performance.now()  // track user response time
     }
 
-    function switchToAgent() {
+    function switchToAgent(turnTime) {
         $("#form").hide();
         $(".loading-bar").show();
         if (userRole == "A") {
@@ -205,7 +208,7 @@ $(function() {  //on page load
             else {
                 setTimeout(function() {
                     switchToUser();
-                }, turnTime);
+                }, waitTime);
             }
         }, turnTime);
     }
@@ -243,7 +246,8 @@ $(function() {  //on page load
         let userGive = moves[0];
         let userKeep = moves[1];
         let userTime = (endTime-startTime);
-        switchToAgent();
+        // updateTurnTime();
+        switchToAgent(turnTime);
         let form = $("#form");
         let giveData = $('<input type="hidden" name="userGive"/>').val(userGive);
         let keepData = $('<input type="hidden" name="userKeep"/>').val(userKeep);
@@ -266,8 +270,10 @@ $(function() {  //on page load
                 agentKeeps = strToNum(returnData.agentKeeps.slice(1, -1).split(", "));
                 agentRewards = strToNum(returnData.agentRewards.slice(1, -1).split(", "));
                 complete = returnData.complete;
+                doneGames = returnData.doneGames;
+                message = returnData.message;
                 if (complete) {gameComplete();}
-                else {switchToAgent();}
+                else {switchToAgent(turnTime);}
             }
         });
         return false;
@@ -297,6 +303,10 @@ $(function() {  //on page load
             // $("#flair").text();  // randomized text
             $("#home").show();
             $("#play").show();
+            if (doneGames) {
+                $("#play").text(message);
+                $("#play").removeAttr("href");
+            }
             let userScore = userRewards.reduce((a, b) => a + b, 0);
             let agentScore = agentRewards.reduce((a, b) => a + b, 0);
             if (userRole == "A") {

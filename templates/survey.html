@@ -15,44 +15,48 @@
 		{% csrf_token %}
 		<table>
 			<tr>
-				<td>{{ form.age.label_tag }}</td>
-				<td>{{ form.age }}</td>
+				<td class="f1">{{ form.age }}</td>
+				<td class="f2">{{ form.age.label_tag }}</td>
 			</tr>
 			<tr>
-				<td>{{ form.gender.label_tag }}</td>
-				<td>{{ form.gender }}</td>
+				<td class="f1">{{ form.gender }}</td>
+				<td class="f2">{{ form.gender.label_tag }}</td>
 			</tr>
 			<tr>
-				<td>{{ form.income.label_tag }}</td>
-				<td>{{ form.income }}</td>
+				<td class="f1">{{ form.income }}</td>
+				<td class="f2">{{ form.income.label_tag }}</td>
 			</tr>
 			<tr>
-				<td>{{ form.education.label_tag }}</td>
-				<td>{{ form.education }}</td>
+				<td class="f1">{{ form.education }}</td>
+				<td class="f2">{{ form.education.label_tag }}</td>
 			</tr>
 			<tr>
-				<td>{{ form.veteran.label_tag }}</td>
-				<td>{{ form.veteran }}</td>
+				<td class="f1">{{ form.veteran }}</td>
+				<td class="f2">{{ form.veteran.label_tag }}</td>
 			</tr>
 		</table>
 		<br>
-		<p>For the next three questions, you will be asked to report a number between 1 and 10</p>
-		<div class="grid">
-			<p>{{ form.empathy.label}}</p>
-			<p class="middle">{{ form.empathy }}</p>
-			<p><strong>1</strong> - you struggle to understand others’ feelings <br><strong>10</strong> - you intuitively understand others’ feelings</p>
-		</div>
-		<div class="grid">
-			<p>{{ form.risk.label}}</p>
-			<p class="middle">{{ form.risk }}</p>
-			<p><strong>1</strong> - you give them nothing <br><strong>10</strong> - you give them the full amount</td></p>
-		</div>
-		<div class="grid">
-			<p>{{ form.altruism.label}}</p>
-			<p class="middle">{{ form.altruism }}</p>
-			<p><strong>1</strong> - you keep all your winnings <br><strong>10</strong> - you redistribute all your winnings</p>
-		</div>
-		<br>
-		<input type="submit" value ="Submit"/> 
+
+		<h2>For the next three questions, you will be asked to report a number between 1 and 10</h2>
+
+		<table>
+			<tr>
+				<td class="c1">{{ form.empathy }}</td>
+				<td class="c2">{{ form.empathy.label }}</td>
+				<td class="c3"><strong>1</strong> - you struggle to understand others’ feelings <br><strong>10</strong> - you intuitively understand others’ feelings</td>
+			</tr>
+			<tr>
+				<td class="c1">{{ form.risk }}</td>
+				<td class="c2">{{ form.risk.label }}</td>
+				<td class="c3"><strong>1</strong> - you give them nothing <br><strong>10</strong> - you give them the full amount</td>
+			</tr>
+			<tr>
+				<td class="c1">{{ form.altruism }}</td>
+				<td class="c2">{{ form.altruism.label }}</td>
+				<td class="c3"><strong>1</strong> - you keep all your winnings <br><strong>10</strong> - you redistribute all your winnings</td>
+			</tr>
+		</table>
+
+		<div id="submitWrapper"><input id="submitButton" type="submit" value ="Submit"/> </div>
 	</form>
 </body>

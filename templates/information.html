@@ -28,7 +28,7 @@
 	<p class="question">Is participation in the study voluntary?</p>
 	<p>Your participation in this study is voluntary. You may decline to answer any survey question(s) you prefer not to answer. You may withdraw from the study after orientation by emailing <a href="mailto:pduggins@uwaterloo.ca?subject=Question%20regarding%20IGWeb%20Experiment">pduggins@uwaterloo.ca</a>, providing your MTurk ID, and requesting that your data be deleted. </p>
 	<p class="question">Will I receive anything for participating in the study?</p>
-	<p>The orientation session requires approximately <strong>20 minutes</strong>, for which participants will receive a fixed reward of <strong>$1.00</strong> (USD). The validation code for the MTurk HIT will become available after orientation. Beyond this, participants may continue playing games to earn high-paying bonus rewards: each game will last at most 60 seconds and earn a reward of $0.05, plus an additional $0.05 bonus for good performance. There is a 60-game cap, equating to a maximum payout of <strong>$10 over 60 minutes</strong>. Participants may choose to cash-out at any time, receiving bonus payment for the HIT based on the number of games played.</p>
+    <p>The orientation session requires approximately 20 minutes, for which participants will receive a fixed reward of $2.00 (USD). The validation code for the MTurk HIT will become available after orientation. Beyond this, participants may continue playing games to earn high-paying bonus rewards: each subsequent game will last approximately one minute and earn a reward of $0.06, plus an additional $0.02 bonus for good performance. There is a 100-game cap. <strong>The total payout is thus $2 for playing the required games, $8 for playing all games, and $10 for playing all games with good performance</strong>. Participants may choose to cash-out at any time, receiving bonus payment based on the number of games played.</p>
 	<p class="question">What are the possible benefits of the study?</p>
 	<p>Participation in this study may not provide any personal benefit to you, apart from the remuneration listed above. I hope the data from the study will help build a better understanding of how humans learn to make cooperative decisions in social contexts. See the Research Details page for additional information.</p>
 	<p class="question">What are the risks associated with the study?</p>
@@ -44,8 +44,8 @@
 	<p class="question">Who should I contact if I have questions regarding my participation in the study?</p>
 	<p>If you have any questions regarding this study, or would like additional information to assist you in reaching a decision about participation, contact Peter Duggins at <a href="mailto:pduggins@uwaterloo.ca?subject=Question%20regarding%20IGWeb%20Experiment">pduggins@uwaterloo.ca.</a></p>
 	<!-- <p class="question"><a href="consent.html">Go to consent form</a>.</p> -->
-	{% if user.is_authenticated %}
-		<p class="question"><a href="{% url 'home' %}">Return</a></p>
+	{% if user.doneConsent %}
+		<p class="question"><a href="{% url 'home' %}">Home</a></p>
 	{% else %}
-		<p class="question"><a href="{% url 'consent_register' %}">Consent and Registration</a></p>
+		<p class="question"><a href="{% url 'consent_register' %}">Next - Consent and Registration</a></p>
 	{% endif %}

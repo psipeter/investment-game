@@ -9,29 +9,34 @@
 </head>
 
 <body>
-	<h1 id="top">Consent Form</h1>
-	<p class="justify">By providing your consent, you are not waiving your legal rights or releasing the investigator(s) or involved institution(s) from their legal and professional responsibilities. I have read the information presented in the information letter about a study conducted by Peter Duggins, under the supervision of Dr. Chris Eliasmith, University of Waterloo. I have had the opportunity to ask questions related to the study and have received satisfactory answers to my questions and any additional details.I was informed that participation in the study is voluntary and that I can withdraw this consent by informing the researcher.</p>
-	<p class="justify">I am aware my responses to survey questions and my moves in the investment game <strong>will be recorded</strong> and associated with my MTurk ID.  I give permission for the use of these anonymous data in any thesis or publication that comes from this research. I agree of my own free will to participate in the study, and consent by providing my MTurk ID as a signature below.</p>
-	<form method="POST">
-		{% csrf_token %} 
-		<div class="main">
-			<div class="mainleft">
-				<p>{{form.username.label}}</p>
-				<p>{{form.password1.label}}</p>
-				<p>{{form.password2.label}}</p>
-			</div>
-			<div class="mainright">
-				<p>{{form.username}}</p>
-				<p>{{form.password1}}</p>
-				<p>{{form.password2}}</p>
-			</div>	
-		</div>		
-		{% if form.errors %}
-			<p class="center">{{form.errors.username}}</p>
-			<p class="center">{{form.errors.password1}}</p>
-			<p class="center">{{form.errors.password2}}</p>
-		{% endif %}
-		<input type="submit" value ="Register"/> 
+	<h1>Consent Form</h1>
+	<p>By providing your consent, you are not waiving your legal rights or releasing the investigator(s) or involved institution(s) from their legal and professional responsibilities. I have read the information presented in the information letter about a study conducted by Peter Duggins, under the supervision of Dr. Chris Eliasmith, University of Waterloo. I have had the opportunity to ask questions related to the study and have received satisfactory answers to my questions and any additional details.I was informed that participation in the study is voluntary and that I can withdraw this consent by informing the researcher.</p>
+	<p>I am aware my responses to survey questions and my moves in the investment game <strong>will be recorded</strong> and associated with my MTurk ID.  I give permission for the use of these anonymous data in any thesis or publication that comes from this research. I agree of my own free will to participate in the study, and consent by providing my MTurk ID as a signature below.</p>
+
+	<div id="wrapper">
+	<p id="create">Create Account</p>
+	<form id="consentForm" action="" method="post">
+		{% csrf_token %}
+		<table>
+			<tr>
+				<td class="f2">{{ form.username.label_tag }}</td>
+				<td class="f1">{{ form.username }}</td>
+				<td class="f3">{{ form.errors.username }}</td>
+			</tr>
+			<tr>
+				<td class="f2">{{ form.password1.label_tag }}</td>
+				<td class="f1">{{ form.password1 }}</td>
+				<td class="f3">{{ form.errors.password1 }}</td>
+			</tr>
+			<tr>
+				<td class="f2">{{ form.password2.label_tag }}</td>
+				<td class="f1">{{ form.password2 }}</td>
+				<td class="f3">{{ form.errors.password2 }}</td>
+			</tr>
+		</table>
+		<div id="consentWrapper">
+			<input id="consentButton" type="submit" class="btn btn-default btn-lg" value="Sign and Register">
+		</div>
 	</form>
-	<p class="justify">This study has been reviewed and received ethics clearance through a University of Waterloo Research Ethics Committee (ORE#42531). If you have questions for the Committee contact the Office of Research Ethics at oreceo@uwaterloo.ca. For all other questions contact Peter Duggins at <a href="mailto:pduggins@uwaterloo.ca">pduggins@uwaterloo.ca</a>.</p>
+	</div>
 </body>

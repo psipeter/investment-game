@@ -7,10 +7,44 @@
 	<link rel="stylesheet" href="{% static 'home.css' %}">
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 </head>
 
 <body>
-	<p id="ID">ID: {{user}}</p>
+	<p id="ID">ID: {{username}}</p>
 	<p id="home">Home</p>
-	<p id="logout"><a href="{% url 'logout' %}">Logout</a> </p>
+	<p id="logout"><a href="{% url 'logout' %}">Logout</a></p>
+	<div id="top-space"> </div>
+
+	<p id="information"><a id="information-link" href="{% url 'information' %}">Study Information</a></p>
+	<p id="consent"><a id="consent-link" href="{% url 'consent_signed' %}">Consent Form</a></p>
+	<p id="survey"><a id="survey-link" href="{% url 'survey' %}">Survey</a></p>
+
+	<p id="tutorial"><a id="tutorial-link" href="{% url 'tutorial' %}">Tutorial</a></p>
+	<p id="tutorial-count"></p>
+	<p id="required-games"><a id="required-link" href="{% url 'game' %}">Required Games</a></p>
+	<p id="required-count"></p>
+	<div id="required-bg"></div>
+	<p id="bonus-games"><a id="bonus-link" href="{% url 'game' %}">Bonus Games</a></p>
+	<p id="bonus-count"></p>
+
+	<p id="stats"><a id="stats-link" href="{% url 'stats' %}">Game Stats</a></p>
+	<p id="cash-out"><a id="cash-out-link" href="{% url 'cash_out' %}">Cash Out</a></p>
+	<p id="feedback"><a id="feedback-link" href="{% url 'feedback' %}">Give Feedback</a></p>
+
+	<script type="text/javascript">
+		//pass django variables to external javascript
+		let N_REQUIRED = "{{N_REQUIRED}}"
+		let N_BONUS = "{{N_BONUS}}"
+		let nRequired = "{{nRequired}}"
+		let nBonus = "{{nBonus}}"
+		let doneConsent = "{{doneConsent}}"
+		let doneSurvey = "{{doneSurvey}}"
+		let doneTutorial = "{{doneTutorial}}"
+		let doneRequired = "{{doneRequired}}"
+		let doneBonus = "{{doneBonus}}"
+		let doneCash = "{{doneCash}}"
+	</script>
+	<script src="{% static 'home.js' %}"></script>
+
 </body>

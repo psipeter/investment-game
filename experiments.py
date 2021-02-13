@@ -1,10 +1,6 @@
 import numpy as np
 import random
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-import itertools
-import time
 
 class Game():
 	def __init__(self, A, B, capital, match, turns):
@@ -125,103 +121,21 @@ def ManyVsMany(popA, popB, capital, match, turns, avg, rounds, games, seed, name
 	dfAll = pd.concat([df for df in dfs], ignore_index=True)
 	return dfAll
 
-def Forgiveness2D(T4TAs, T4TBs, rlA, rlB, capital, match, turns, avg, rounds, games, seed, endgames=5):
+def XFriendliness(T4TAs, rlBs, capital, match, turns, avg, rounds, games, seed, dependent, endgames=5):
 	end = rounds - endgames
 	dfsAll = []
-	columns = ('FA', 'FB', 'meanA', 'meanB', 'stdA', 'stdB')
-	for t4tA in T4TAs:
-		for t4tB in T4TBs:
-			groupA = [t4tA, rlA]
-			groupB = [t4tB, rlB]
-			dfs = []
-			for a in range(avg):
-				print(f'A {t4tA.F} and B {t4tB.F}, avg {a}')
-				rlA.restart()
-				rlB.restart()
-				for r in range(rounds):
-					np.random.shuffle(groupA)
-					np.random.shuffle(groupB)
-					histories = []
-					for Ai in groupA:
-						for Bi in groupB:
-							if Ai in T4TAs and Bi in T4TBs:
-								continue  # skip T4T vs T4T games
-							for g in range(games):
-								Ai.reset()
-								Bi.reset()
-								G = Game(Ai, Bi, capital, match, turns)
-								G.play()
-								dfs.append(G.historyToDataframe(r))
-								histories.append({'A': Ai, 'B': Bi, 'hist': G.history})
-					np.random.shuffle(histories)
-					for hist in histories:
-						hist['A'].learn(hist['hist'])
-						hist['B'].learn(hist['hist'])
-					rlA.reduceExploration(r)
-					rlB.reduceExploration(r)
-			data = pd.concat([df for df in dfs], ignore_index=True)
-			dataEnd = data.query("game >= @end")
-			meanA = np.mean(dataEnd['aRewards'])
-			meanB = np.mean(dataEnd['bRewards'])
-			stdA = np.std(dataEnd['aRewards'])
-			stdB = np.std(dataEnd['bRewards'])
-			dfsAll.append(pd.DataFrame([[t4tA.F, t4tB.F, meanA, meanB, stdA, stdB]], columns=columns))
-	dfFinal = pd.concat([df for df in dfsAll], ignore_index=True)
-	return dfFinal
-
-def Friendliness2D(rlAs, rlBs, t4tA, t4tB, capital, match, turns, avg, rounds, games, seed, endgames=5):
-	end = rounds - endgames
-	dfsAll = []
-	columns = ('rOA', 'rOB', 'meanA', 'meanB', 'stdA', 'stdB')
-	for rlA in rlAs:
-		for rlB in rlBs:
-			groupA = [rlA, t4tA]
-			groupB = [rlB, t4tB]
-			dfs = []
-			for a in range(avg):
-				print(f'A {rlA.rO} and B {rlB.rO}, avg {a}')
-				rlA.restart()
-				rlB.restart()
-				for r in range(rounds):
-					np.random.shuffle(groupA)
-					np.random.shuffle(groupB)
-					histories = []
-					for Ai in groupA:
-						for Bi in groupB:
-							if Ai == t4tA and Bi == t4tB:
-								continue  # skip T4T vs T4T games
-							for g in range(games):
-								Ai.reset()
-								Bi.reset()
-								G = Game(Ai, Bi, capital, match, turns)
-								G.play()
-								dfs.append(G.historyToDataframe(r))
-								histories.append({'A': Ai, 'B': Bi, 'hist': G.history})
-					np.random.shuffle(histories)
-					for hist in histories:
-						hist['A'].learn(hist['hist'])
-						hist['B'].learn(hist['hist'])
-					rlA.reduceExploration(r)
-					rlB.reduceExploration(r)
-			data = pd.concat([df for df in dfs], ignore_index=True)
-			dataEnd = data.query("game >= @end")
-			meanA = np.mean(dataEnd['aRewards'])
-			meanB = np.mean(dataEnd['bRewards'])
-			stdA = np.std(dataEnd['aRewards'])
-			stdB = np.std(dataEnd['bRewards'])
-			dfsAll.append(pd.DataFrame([[rlA.rO, rlB.rO, meanA, meanB, stdA, stdB]], columns=columns))
-	dfFinal = pd.concat([df for df in dfsAll], ignore_index=True)
-	return dfFinal
-
-def ForgivenessFriendliness(T4TAs, rlBs, capital, match, turns, avg, rounds, games, seed, endgames=5):
-	end = rounds - endgames
-	dfsAll = []
-	columns = ('F', 'rO', 'meanA', 'meanB', 'stdA', 'stdB')
+	if dependent == "Forgiveness":
+		DV = 'F'
+	if dependent == "Punishment":
+		DV = 'P'
+	if dependent == "Magnitude":
+		DV = 'M'
+	columns = (DV, 'rO', 'meanA', 'meanB', 'stdA', 'stdB')
 	for t4t in T4TAs:
 		for rl in rlBs:
 			dfs = []
 			for a in range(avg):
-				print(f'{t4t.ID} F={t4t.F} and {rl.ID} rO={rl.rO}, avg {a}')
+				print(f'{t4t.ID} F={t4t.F}, P={t4t.P} and {rl.ID} rO={rl.rO}, avg {a}')
 				rl.restart()
 				for r in range(rounds):
 					histories = []
@@ -243,9 +157,17 @@ def ForgivenessFriendliness(T4TAs, rlBs, capital, match, turns, avg, rounds, gam
 			meanB = np.mean(dataEnd['bRewards'])
 			stdA = np.std(dataEnd['aRewards'])
 			stdB = np.std(dataEnd['bRewards'])
-			dfsAll.append(pd.DataFrame([[t4t.F, rl.rO, meanA, meanB, stdA, stdB]], columns=columns))
+			if dependent == "Forgiveness":
+				DV = t4t.F
+			if dependent == "Punishment":
+				DV = t4t.P
+			if dependent == "Magnitude":
+				DV = t4t.F
+			dfsAll.append(pd.DataFrame([[DV, rl.rO, meanA, meanB, stdA, stdB]], columns=columns))
 	dfFinal = pd.concat([df for df in dfsAll], ignore_index=True)
 	return dfFinal
+
+
 
 def FriendlinessFriendliness(rlAs, rlBs, capital, match, turns, avg, rounds, games, seed, endgames=5):
 	end = rounds - endgames

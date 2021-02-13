@@ -3,18 +3,29 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator, validate_comma_separated_integer_list
 from django.conf import settings
 from django.utils.crypto import get_random_string
+from datetime import datetime
 
 import uuid
 import numpy as np
 import random
 import pickle
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import seaborn as sns
+import mpld3
+import json
 
 from .agents import *
 from .experiments import *
+from .parameters import *
 
 
 popA = ['T4T']
 popB = ['T4T']
+
+class Feedback(models.Model):
+	text = models.CharField(max_length=4200, blank=True, null=True, default=str)
 
 class Blob(models.Model):
 	name = models.CharField(max_length=100, blank=True, null=True, default=str)
@@ -49,8 +60,16 @@ class Agent(models.Model):
 				self.obj = Greedy(player)
 			elif name=="Generous":
 				self.obj = Generous(player)
-			elif name=="T4T":
-				self.obj = T4T(player)  # F=?
+			elif name=="tutorial":
+				self.obj = T4T(player, F=1, P=1)
+			elif name=="required":
+				self.obj = T4T(player, F=1, P=1)
+			elif name=="T4T-forgive":
+				# self.obj = T4T(player, F=1.5, P=1)
+				self.obj = T4T(player, F=1, P=0.5)
+			elif name=="T4T-punish":
+				self.obj = T4T(player, F=0.5, P=1)
+				# self.obj = T4T(player, F=1, P=1.5)
 			elif name=="Bandit":
 				self.obj = Bandit(player, nA)  # rO=?
 			elif name=="QLearn":
@@ -101,10 +120,25 @@ class Game(models.Model):
 	userRole = models.CharField(max_length=1, choices=(("A", "A"), ("B", "B")), null=True, blank=True)
 	agentRole = models.CharField(max_length=1, choices=(("A", "A"), ("B", "B")), null=True, blank=True)
 	complete = models.BooleanField(default=False)
-	rounds = models.IntegerField(default=5)
-	capital = models.IntegerField(default=10)
-	match = models.FloatField(default=3)
+	rounds = models.IntegerField(default=ROUNDS)
+	capital = models.IntegerField(default=CAPITAL)
+	match = models.FloatField(default=MATCH)
 	seed = models.IntegerField(default=0)
+
+	def setAgent(self):
+		if not self.user.doneTutorial:
+			name = "tutorial"
+		elif not self.user.doneRequired:
+			name = "required"
+		elif self.user.group == "1":
+			name = "T4T-forgive"
+		elif self.user.group == "2":
+			name = "T4T-punish"
+		else:
+			raise "agent not set"
+		self.agent = Agent.objects.create()
+		self.agent.start(name, self.agentRole)
+		self.save()
 
 	def start(self, user):
 		self.user = user
@@ -113,14 +147,10 @@ class Game(models.Model):
 		if np.random.rand() > 0.5:
 			self.userRole = "A"
 			self.agentRole = "B"
-			name = popB[np.random.randint(len(popB))]
 		else:
 			self.userRole = "B"
 			self.agentRole = "A"
-			name = popA[np.random.randint(len(popA))]
-		self.agent = Agent.objects.create()
-		self.agent.start(name, self.agentRole)
-		self.save()
+		self.setAgent()
 		if self.agentRole == "A":
 			self.goAgent(self.capital)
 		self.user.currentGame = self
@@ -217,64 +247,84 @@ class Game(models.Model):
 
 
 class User(AbstractUser):
-	# Status
+	# assign to unique group
+	def f():
+		return 1 if np.random.rand() < 0.5 else 2
 	currentGame = models.ForeignKey(Game, on_delete=models.SET_NULL, null=True, blank=True, related_name="currentGame")
-	gamesPlayed = models.IntegerField(default=0)
-	doneInformation = models.BooleanField(default=False)
-	doneConsent = models.BooleanField(default=False)
-	doneSurvey = models.BooleanField(default=False)
-	doneTutorial = models.BooleanField(default=False)
-	doneRequiredGames = models.BooleanField(default=False)
-	doneBonusGames = models.BooleanField(default=False)
-	doneCashedOut = models.BooleanField(default=False)
-	completionCode = models.CharField(
-		max_length=32,
-		default=get_random_string(length=32),
-		help_text="MTurk Confirmation Code")
-	# Survey information
-	age = models.IntegerField(
-		validators=[MinValueValidator(18), MaxValueValidator(120)],
-		null=True, blank=True)
-	genderChoices = (
-		('', '---'),
-		('m', 'Male'),
-		('f', 'Female'),
-		('o', 'Non-Binary'))
-	gender = models.CharField(
-		max_length=300, choices=genderChoices,
-		null=True, blank=True)
-	income = models.FloatField(
-		null=True, blank=True)
-	educationChoices = (
-		('', '---'),
-		('1', 'Primary (middle) school'),
-		('2', 'Secondary (high) school'),
-		('3', 'Undergraduate degree'),
-		('4', 'Graduate degree'),
-		('6', 'Other'))
-	education = models.CharField(
-		max_length=300, choices=educationChoices,
-		null=True, blank=True)
-	veteran = models.BooleanField(
-		null=True, blank=True)
-	empathy = models.IntegerField(
-		validators=[MinValueValidator(1), MaxValueValidator(10)],
-		null=True, blank=True)
-	risk = models.IntegerField(
-		validators=[MinValueValidator(1), MaxValueValidator(10)],
-		null=True, blank=True)
-	altruism = models.IntegerField(
-		validators=[MinValueValidator(1), MaxValueValidator(10)],
-		null=True, blank=True)
-	# feedback
-	feedback = models.CharField(
-		max_length=4200, null=True, blank=True)
+	nRequired = models.IntegerField(default=0)
+	nBonus = models.IntegerField(default=0)
+	doneConsent = models.DateTimeField(null=True, blank=True)
+	doneSurvey = models.DateTimeField(null=True, blank=True)
+	doneTutorial = models.DateTimeField(null=True, blank=True)
+	doneRequired = models.DateTimeField(null=True, blank=True)
+	doneBonus = models.DateTimeField(null=True, blank=True)
+	doneCash = models.DateTimeField(null=True, blank=True)
+	group = models.CharField(max_length=1, choices=(("1", "forgive"), ("2", "punish")), default=f)
+	code = models.CharField(max_length=32, default=get_random_string(length=32), help_text="MTurk Confirmation Code")
+	age = models.IntegerField(validators=[MinValueValidator(18), MaxValueValidator(120)], null=True, blank=True)
+	gender = models.CharField(max_length=300, null=True, blank=True)
+	income = models.CharField(max_length=300, null=True, blank=True)
+	education = models.CharField(max_length=300, null=True, blank=True)
+	veteran = models.CharField(max_length=300, null=True, blank=True)
+	empathy = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(10)], null=True, blank=True)
+	risk = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(10)], null=True, blank=True)
+	altruism = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(10)], null=True, blank=True)
 
-	def checkRequirements(self):
-		# todo: improved checks for study info, consent, survey, tutorial
-		myGame = models.Q(user=self)
-		isDone = models.Q(complete=True)
-		self.gamesPlayed = Game.objects.filter(myGame and isDone).count()
-		self.doneRequiredGames = True if self.gamesPlayed >= 3 else False
-		self.doneBonusGames = True if self.gamesPlayed >= 63 else False
+	def setProgress(self):
+		nRequired = Game.objects.filter(user=self, complete=True, agent__name="required").count()
+		nBonus = Game.objects.filter(user=self, complete=True).exclude(agent__name="required").count()
+		self.nRequired = nRequired
+		self.nBonus = nBonus
 		self.save()
+		if self.nRequired < N_REQUIRED:
+			self.doneRequired = None
+		if self.nBonus < N_BONUS:
+			self.doneBonus = None
+		self.save()
+		if self.doneRequired == None and self.nRequired >= N_REQUIRED:
+			self.doneRequired = datetime.now()
+		if self.doneBonus == None and self.nBonus >= N_BONUS:
+			self.doneBonus = datetime.now()
+		self.save()
+
+	def makeFigs(self):
+		gamesA = Game.objects.filter(user=self, userRole="A", complete=True).exclude(agent__name="required")
+		gamesB = Game.objects.filter(user=self, userRole="B", complete=True).exclude(agent__name="required")
+		if gamesA.count() <= 1 or gamesB.count() <= 1:
+			return {'skip': True, 'figScoreA': None, 'figScoreB': None, 'figGenA': None, 'figGenB': None}
+		dfs = []
+		columns = ('player', 'turn', 'score', 'generosity')
+		for game in gamesA:
+			for t in range(game.rounds):
+				give = game.historyToArray("user", "give")
+				keep = game.historyToArray("user", "keep")
+				reward = game.historyToArray("user", "reward")
+				dfs.append(pd.DataFrame([["A", t, reward[t], give[t]/(give[t]+keep[t])]], columns=columns))
+		for game in gamesB:
+			for t in range(game.rounds):
+				give = game.historyToArray("user", "give")
+				keep = game.historyToArray("user", "keep")
+				reward = game.historyToArray("user", "reward")
+				dfs.append(pd.DataFrame([["B", t, reward[t], give[t]/(give[t]+keep[t])]], columns=columns))
+		df = pd.concat([df for df in dfs], ignore_index=True)
+
+		ylim = ((0, 1))
+		binsG = np.linspace(0, 1, game.capital+1)
+		binsS = np.arange(0, game.match*game.capital+1, 2)
+		meanScore = np.mean(df['score'])
+
+		fig, (ax, ax2) = plt.subplots(nrows=1, ncols=2, sharey=True, figsize=((8, 4)))
+		sns.histplot(data=df, x='score', ax=ax, stat="probability", bins=binsS, element="step", hue='player')  
+		ax.set(xlabel="Score", ylabel="Frequency", xticks=((binsS)), ylim=ylim, title="Score")
+		ax.plot([BONUS_THR, BONUS_THR], [0,1], color='k', linestyle="--", label="Bonus Threshold")
+		ax.plot([meanScore, meanScore], [0,1], color='r' if meanScore < BONUS_THR else 'g', label="Current Score")
+		sns.histplot(data=df, x='generosity', ax=ax2, stat="probability", bins=binsG, element="step", hue='player')  
+		ax2.set(xlabel="Generosity", ylabel=None, xticks=((binsG)), title="Generosity")
+		leg = ax.legend(loc='upper right')
+		# leg2 = ax2.legend(loc='upper right')
+		fig.tight_layout()
+		fig.savefig('game/plots/userStats.pdf')
+		figure = mpld3.fig_to_html(fig)
+		plt.close()
+
+		return {'skip': False, 'figure': figure}

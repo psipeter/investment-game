@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>Game Stats</title>
+	{% load static %}
+	<link rel="stylesheet" href="{% static 'stats.css' %}">
+	<meta charset="utf-8">
+</head>
+
+<body>
+	<h1>Game Statistics</h1>
+	<p id="home"><a href="{% url 'home' %}">Home</a></p>
+	{% if skip %}
+		<p id="skip">Play more bonus games to generate statistics...</p>
+	{% else %}
+		<div id="figure">{{figure|safe}}</div>
+		<p class="center"><strong>Score</strong> is calculated by averaging rewards for each turn</p>
+		<p class="center"><strong>Generosity</strong> is calculated by averaging the ratio of money sent to money available for each turn</p>
+	{% endif %}
+</body>

@@ -11,7 +11,7 @@ class FeedbackForm(forms.Form):
 		label=None,
 		widget=forms.Textarea(attrs={
 			'rows': 4, 'cols': 40,
-			'placeholder': "Your feedback here...",
+			'placeholder': "Your feedback here...questions, comments, suggestions, etc.",
 			}))
 
 class LoginForm(forms.Form):
@@ -38,9 +38,9 @@ class CreateForm(UserCreationForm):
 		help_texts = {'username': None, 'password1': None, 'password2': None}
 
 class ResetForm(forms.Form):
-	username = forms.CharField(label="MTurk ID")
+	username = forms.CharField(label="Mechanical Turk ID")
 	password1 = forms.CharField(label='New password', widget=forms.PasswordInput)
-	password2 = forms.CharField(label='Confirm new password', widget=forms.PasswordInput)
+	password2 = forms.CharField(label='Confirm password', widget=forms.PasswordInput)
 	password1.widget.attrs.update({'autocomplete':'password'})	
 	password2.widget.attrs.update({'autocomplete':'password'})	
 	def clean_username(self):
@@ -65,7 +65,18 @@ class ProfileForm(forms.ModelForm):
 		('f', 'Female'),
 		('o', 'Non-Binary'))
 	gender = forms.ChoiceField(choices=genderChoices, required=False)
-	income = forms.FloatField(label="Yearly Household Income", required=False)
+	incomeChoices = (
+		('', '---'),
+		('1', 'Less than $20,000'),
+		('2', '$20,000 - 40,000'),
+		('3', '$40,000 - 60,000'),
+		('4', '$60,000 - 80,000'),
+		('5', '$80,000 - 100,000'),
+		('6', 'Greater than $100,000'))
+	income = forms.ChoiceField(
+		# label="Yearly Household Income (combined before tax income of all working members of the household)",
+		label="Yearly Household Income",
+		choices=incomeChoices, required=False)
 	educationChoices = (
 		('', '---'),
 		('1', 'Primary (middle) school'),
@@ -74,9 +85,13 @@ class ProfileForm(forms.ModelForm):
 		('4', 'Graduate degree'),
 		('6', 'Other'))
 	education = forms.ChoiceField(choices=educationChoices, required=False)
-	veteran = forms.BooleanField(
+	veteranChoices = (
+		('', '---'),
+		('1', 'Yes'),
+		('2', 'No'))
+	veteran = forms.ChoiceField(
 		label="Have you played the Prisoner's Dilemma?",
-		initial=False,
+		choices=veteranChoices,
 		required=False)
 	empathyLabel = "How easily can you figure out what other people are thinking or feeling during a conversation?"
 	empathyHelpText = "1 indicates that you struggle to understand others’ motivations, and 10 indicates that you intuitively understand others’ mental processes."

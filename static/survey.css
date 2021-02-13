@@ -1,40 +1,71 @@
-html {
+body {
+	width: 100%;
+	height: 100%;
+	margin: 0;
 	font-size: 16px;
-	font-family: 'Oswald', sans-serif; /*comment*/
-	background-color: #C7D3E0;
+	font-family: 'Oswald', sans-serif;
+	background: #d1d1d1;
 }
 
 h1 {
 	margin: 0;
-	padding: 20px 0;
+	font-size: 36px;
 	color: #00539F;
-	font-size: 32px;
 	text-align: center;
-	text-shadow: 1px 1px 1px black;
 }
-
 h2 {
+	margin-top: 2%;
+	margin-bottom: 2%;
 	font-size: 20px;
-	text-align: center;
+	text-align: left;
 }
 
-input {
-	font-size: inherit;
-	font-family: inherit;
+.fieldWrapper {
+	width: 100%;
 	display: flex;
-	justify-content: center;
 }
 
-.grid {
-	position: relative;
-	display: grid;
-	grid-template-columns: 1fr 1fr 1fr;
-	grid-template-rows: 200px;
+.f1 {
+	width: 20%;
 }
 
-.middle {
-	font-size: inherit;
-	font-family: inherit;
-	display: inline-flex;
-	justify-content: center;
+.f2 {
+	width: 80%;
+	padding-left: 2%;
+}
+
+
+.c1 {
+	width: 15%;
+}
+.c2 {
+	width: 50%;
+	padding-left: 2%;
+}
+.c3 {
+	width: 35%;
+	padding-left: 2%;
+}
+
+input, select {
+	width: 100%;
+	height: 100%;
+	font-size: 16px;
+	font-family: 'Oswald', sans-serif;
+}
+
+#submitWrapper {
+	margin-top: 2%;
+	width: 100%;
+}
+
+#submitButton {
+	width: 20%;
+	margin-left: 40%;
+	text-align: center;
+	font-size: 18px;
+	border: 3px solid black;
+	background: #ffd500;
+	border-radius: 50px;
+
 }
