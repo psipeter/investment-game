@@ -11,26 +11,50 @@
 </head>
 
 <body>
+	{% for message in messages %}
+	    <p id='error'>{{ message }}</p>
+	{% endfor %}
 	<p id="ID">ID: {{username}}</p>
 	<p id="home">Home</p>
 	<p id="logout"><a href="{% url 'logout' %}">Logout</a></p>
-	<div id="top-space"> </div>
 
-	<p id="information"><a id="information-link" href="{% url 'information' %}">Study Information</a></p>
-	<p id="consent"><a id="consent-link" href="{% url 'consent_signed' %}">Consent Form</a></p>
-	<p id="survey"><a id="survey-link" href="{% url 'survey' %}">Survey</a></p>
+	<p id="information"><a id="information-link" class="link" href="{% url 'information' %}">Study Information</a></p>
+	<div id="information-bg" class="bg"></div>
 
-	<p id="tutorial"><a id="tutorial-link" href="{% url 'tutorial' %}">Tutorial</a></p>
-	<p id="tutorial-count"></p>
-	<p id="required-games"><a id="required-link" href="{% url 'game' %}">Required Games</a></p>
-	<p id="required-count"></p>
-	<div id="required-bg"></div>
-	<p id="bonus-games"><a id="bonus-link" href="{% url 'game' %}">Bonus Games</a></p>
-	<p id="bonus-count"></p>
+	<p id="consent"><a id="consent-link" class="link" href="{% url 'consent_signed' %}">Consent Form</a></p>
+	<div id="consent-bg" class="bg"></div>
 
-	<p id="stats"><a id="stats-link" href="{% url 'stats' %}">Game Stats</a></p>
-	<p id="cash-out"><a id="cash-out-link" href="{% url 'cash_out' %}">Cash Out</a></p>
-	<p id="feedback"><a id="feedback-link" href="{% url 'feedback' %}">Give Feedback</a></p>
+	<p id="survey"><a id="survey-link" class="link" href="{% url 'survey' %}">Survey</a></p>
+	<div id="survey-bg" class="bg"></div>
+
+
+	<div id="tutorial">
+		<a id="tutorial-link" class="link" href="{% url 'tutorial' %}">Tutorial</a>
+		<p id="tutorial-count" class="count"></p>
+	</div>
+	<div id="tutorial-bg" class="bg"></div>
+
+	<div id="required-games">
+		<a id="required-link" class="link" href="{% url 'game' %}">Required Games</a>
+		<p id="required-count" class="count"></p>
+	</div>
+	<div id="required-bg" class="bg"></div>
+
+	<div id="bonus-games">
+		<p><a id="bonus-link" class="link" href="{% url 'game' %}">Bonus Games</a></p>
+		<p id="bonus-count" class="count"></p>
+	</div>
+	<div id="bonus-bg" class="bg"></div>
+
+	<p id="stats"><a id="stats-link" class="link" href="{% url 'stats' %}">Game Stats</a></p>
+	<div id="stats-bg" class="bg"></div>
+
+	<p id="cash-out"><a id="cash-out-link" class="link" href="{% url 'cash_out' %}">Cash Out</a></p>
+	<div id="cash-bg" class="bg"></div>
+
+
+	<p id="feedback"><a id="feedback-link" class="link" href="{% url 'feedback' %}">Give Feedback</a></p>
+	<div id="feedback-bg" class="bg"></div>
 
 	<script type="text/javascript">
 		//pass django variables to external javascript

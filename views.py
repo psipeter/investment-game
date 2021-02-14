@@ -3,7 +3,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth import login as auth_login
 from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.decorators import login_required
-from django.contrib import messages
+from django.contrib.messages import error
 from django.http import JsonResponse
 from django.conf import settings
 from django.urls import reverse
@@ -11,6 +11,7 @@ from .models import Game, User, Feedback
 from game.forms import LoginForm, CreateForm, ProfileForm, ResetForm, FeedbackForm
 from datetime import datetime
 from .parameters import *
+
 # Authentication
 
 def login(request):
@@ -66,8 +67,6 @@ def information(request):
 	return render(request, "information.html")
 
 def consent_register(request):
-	# request.user.doneConsent = True
-	# request.user.save()
 	if request.method == 'POST':
 		form = CreateForm(request.POST)
 		if form.is_valid():
@@ -89,20 +88,32 @@ def consent_signed(request):
 
 @login_required
 def tutorial(request):
-	request.user.doneTutorial = datetime.now()
-	request.user.save()
-	return render(request, "tutorial.html")
+	if request.user.doneConsent:
+		request.user.doneTutorial = datetime.now()
+		request.user.save()
+		return render(request, "tutorial.html")
+	else:
+		error(request, 'You must sign the consent form before taking the tutorial')
+		return redirect('home')
 
 @login_required
 def stats(request):
-	figures = request.user.makeFigs()
-	return render(request, "stats.html", context=figures)
+	if request.user.nBonus >= 2:
+		figures = request.user.makeFigs()
+		return render(request, "stats.html", context=figures)
+	else:
+		error(request, 'Play more bonus games before viewing game statistics')
+		return redirect('home')
 
 @login_required
 def cash_out(request):
-	request.user.doneCash = datetime.now()
-	request.user.save()
-	return render(request, "cash_out.html")
+	if request.user.doneConsent and request.user.doneRequired:
+		request.user.doneCash = datetime.now()
+		request.user.save()
+		return render(request, "cash_out.html")
+	else:
+		error(request, 'You must complete the required games before cashing out')
+		return redirect('home')
 
 @login_required
 def feedback(request):
@@ -156,20 +167,24 @@ def home(request):
 
 @login_required
 def startGame(request):
-	game = Game.objects.create()
-	game.start(request.user)
-	context = {
-		'game': game,
-		'A': game.user if game.userRole == "A" else game.agent.name,
-		'B': game.user if game.userRole == "B" else game.agent.name,
-		'userGives': list(game.historyToArray("user", "give")),
-		'userKeeps': list(game.historyToArray("user", "keep")),
-		'userRewards': list(game.historyToArray("user", "reward")),
-		'agentGives': list(game.historyToArray("agent", "give")),
-		'agentKeeps': list(game.historyToArray("agent", "keep")),
-		'agentRewards': list(game.historyToArray("agent", "reward")),
-	}
-	return render(request, "game.html", context=context)
+	if request.user.doneConsent and request.user.doneTutorial:
+		game = Game.objects.create()
+		game.start(request.user)
+		context = {
+			'game': game,
+			'A': game.user if game.userRole == "A" else game.agent.name,
+			'B': game.user if game.userRole == "B" else game.agent.name,
+			'userGives': list(game.historyToArray("user", "give")),
+			'userKeeps': list(game.historyToArray("user", "keep")),
+			'userRewards': list(game.historyToArray("user", "reward")),
+			'agentGives': list(game.historyToArray("agent", "give")),
+			'agentKeeps': list(game.historyToArray("agent", "keep")),
+			'agentRewards': list(game.historyToArray("agent", "reward")),
+		}
+		return render(request, "game.html", context=context)
+	else:
+		error(request, 'You must complete the tutorial before playing the required games')
+		return redirect('home')
 
 @login_required
 def updateGame(request):
