@@ -3,7 +3,10 @@
 
 <head>
 	<title>Home</title>
+	<link rel="preconnect" href="https://fonts.gstatic.com">
+	<link href="https://fonts.googleapis.com/css2?family=Jaldi:wght@700&family=Roboto:wght@300&display=swap" rel="stylesheet">
 	{% load static %}
+	<!-- Illustration by Natasha Remarchuk from Icons8 -->
 	<link rel="stylesheet" href="{% static 'home.css' %}">
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,14 +14,57 @@
 </head>
 
 <body>
-	{% for message in messages %}
-	    <p id='error'>{{ message }}</p>
-	{% endfor %}
-	<p id="ID">ID: {{username}}</p>
-	<p id="home">Home</p>
-	<p id="logout"><a href="{% url 'logout' %}">Logout</a></p>
+	<div id="top-box">
+		<p id="ID">ID: {{username}}</p>
+		<p id="home">THE INVESTMENT GAME</p>
+		<p id="logout"><a id="logout-link" href="{% url 'logout' %}">Logout</a></p>
+	</div>
+	<div id="error-box">
+		{% for message in messages %}
+		    <p class='error'>{{ message }}</p>
+		{% endfor %}				
+	</div>
+	<div id="information-box" class="box" href="{% url 'information' %}">
+		<img id="information-img" class="image" src="{% static 'information.png' %}" alt="information icon">
+		<p id="information-text" class="text">Information</p>
+	</div>
+	<div id="consent-box" class="box" href="{% url 'consent_signed' %}">
+		<img id="consent-img" class="image" src="{% static 'consent.png' %}" alt="consent icon">
+		<p id="consent-text" class="text">Consent</p>
+	</div>
+	<div id="survey-box" class="box" href="{% url 'survey' %}">
+		<img id="survey-img" class="image" src="{% static 'survey.png' %}" alt="survey icon">
+		<p id="survey-text" class="text">Survey</p>
+	</div>
+	<div id="tutorial-box" class="box" href="{% url 'tutorial' %}">
+		<img id="tutorial-img" class="image" src="{% static 'tutorial.png' %}" alt="tutorial icon">
+		<p id="tutorial-text" class="text">Tutorial</p>
+	</div>
+	<div id="required-box" class="box" href="{% url 'game' %}">
+		<img id="required-img" class="image" src="{% static 'required.png' %}" alt="required icon">
+		<p id="required-text" class="text">Required Games</p>
+	</div>
+	<div id="bonus-box" class="box" href="{% url 'game' %}">
+		<img id="bonus-img" class="image" src="{% static 'bonus.png' %}" alt="bonus icon">
+		<p id="bonus-text" class="text">Bonus Games</p>
+	</div>
+	<div id="stats-box" class="box" href="{% url 'stats' %}">
+		<img id="stats-img" class="image" src="{% static 'stats.png' %}" alt="stats icon">
+		<p id="stats-text" class="text">Game Stats</p>		
+	</div>
+	<div id="cash-box" class="box" href="{% url 'cash_out' %}">
+		<img id="cash-img" class="image" src="{% static 'cash.png' %}" alt="cash icon">
+		<p id="cash-text" class="text">Cash Out</p>		
+	</div>
+	<div id="feedback-box" class="box" href="{% url 'feedback' %}">
+		<img id="feedback-img" class="image" src="{% static 'feedback.png' %}" alt="feedback icon">
+		<p id="feedback-text" class="text">Feedback</p>		
+	</div>
 
-	<p id="information"><a id="information-link" class="link" href="{% url 'information' %}">Study Information</a></p>
+
+
+
+<!-- 	<p id="information"><a id="information-link" class="link" href="{% url 'information' %}">Study Information</a></p>
 	<div id="information-bg" class="bg"></div>
 
 	<p id="consent"><a id="consent-link" class="link" href="{% url 'consent_signed' %}">Consent Form</a></p>
@@ -55,7 +101,7 @@
 
 	<p id="feedback"><a id="feedback-link" class="link" href="{% url 'feedback' %}">Give Feedback</a></p>
 	<div id="feedback-bg" class="bg"></div>
-
+ -->
 	<script type="text/javascript">
 		//pass django variables to external javascript
 		let N_REQUIRED = "{{N_REQUIRED}}"
