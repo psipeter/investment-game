@@ -1,14 +1,15 @@
 $(function() {  //on page load
 
-    // initialization and globals
+    // Initialization and globals
     let maxUser;
     let maxAgent;
-    let turnTime = 100 + 600*Math.random();  // ms
-    let waitTime = 200;
+    let agentTime = 2000;
+    let animateTime = 1000;
     let startTime = performance.now();
     let endTime = performance.now();
     let doneGames = false
     let message = null
+    let lastKeep = 0;
     complete = false
     // initial game conditions (if continued or agent moves first)
     function strToNum(arr){
@@ -28,192 +29,116 @@ $(function() {  //on page load
     if (userRole == "A") {
         maxUser = capital;
         maxAgent = 0;  // updated after user moves
-        $('#aReward').addClass('green');
-        $('#bReward').addClass('red');
-        $('#aScore').addClass('green');
-        $('#bScore').addClass('red');
-        $('#keep100').addClass('left');
-        $('#give100').addClass('right');
-        $('#form').css({'background': 'linear-gradient(90deg, green, red)'});
+        $("#nameA").text("You");
+        $("#nameB").text("Them");
+        // $("#slider").css('background', $("#aNow").css('color'));
         $("#submit").prop('disabled', true);
-        $(".loading-bar").hide();
+        $("#loading").hide();
     }
     else {
+        $("#nameB").text("You");
+        $("#nameA").text("Them");
+        // $("#slider").css('background', $("#bNow").css('color'));
         maxAgent = capital;
         maxUser = 0;  // updated after agent moves
-        $('#aReward').addClass('red');
-        $('#bReward').addClass('green');
-        $('#aScore').addClass('red');
-        $('#bScore').addClass('green');
-        $('#keep100').addClass('right');
-        $('#give100').addClass('left');
-        $('#form').css({'background': 'linear-gradient(90deg, red, green)'});
-        $("#submit").hide();
-        $(".loading-bar").show();
+        $("#transfer").hide();
+        $("#loading").show();
+        // $("#submit").css('visibility', 'hidden');
+        // $("#loading").css('visibility', 'visible');
     }
-    $('#aTitle').css({'background': '#5cf7ff'});
-    $('#bTitle').css({'background': 'white'});
-    $("#gameOver").hide();
-    $("#aScore").hide();
-    $("#bScore").hide();
-    $("#flair").hide();
-    $("#home").hide();
-    $("#play").hide();
     $("#form").slider({
         slide: function(event, ui) {
             $("#submit").prop('disabled', false);
-            $("#aReward").show();
-            $("#bReward").show();
-            $("#aReward").text("+"+(maxUser-ui.value));
-            $("#bReward").text("+"+ui.value);
+            $("#sendA").css('visibility', 'visible');
+            $("#sendB").css('visibility', 'visible');
+            $("#sendA").text("$"+(maxUser-ui.value));
+            $("#sendB").text("$"+ui.value);
         }
     });
-    createTable();
-    if (userRole == "A") {switchToUser();}
-    else {switchToAgent(turnTime);}
+    $("#home").hide();
+    $("#flair").hide();
+    $("#play-again").hide();
+    $("#form").slider({"disabled": true});
+    $("#sendA").css('visibility', 'hidden');
+    $("#sendB").css('visibility', 'hidden');
+    $("#form").slider("option", 'max', capital);
+    $("#form").slider("option", 'value', capital/2);
+    animateAvailable("capital");
+    // switch after animation time
+    setTimeout(function() {
+        if (userRole == "A") {switchToUser();}
+        else {switchToAgent();}
+    }, animateTime);
 
-    // Populate the move table
-    function createTable() {
-        let table = $('<table>').addClass('table');
-        table.attr("id", "table");
-        let headrow = $('<tr>');
-        let header = $('<th>');
-        header.text("turn");
-        headrow.append(header);
-        // let nCols = Math.max(userGives.length, agentGives.length);
-        let nCols = 5;
-        for (a=0; a<nCols; a++){
-            let header = $('<th>');
-            let turnText = "";
-            if (a==0) {turnText="I"};
-            if (a==1) {turnText="II"};
-            if (a==2) {turnText="III"};
-            if (a==3) {turnText="IV"};
-            if (a==4) {turnText="V"};
-            header.text(turnText);
-            headrow.append(header);          
-        }
-        table.append(headrow);
-        for (p=0; p<2; p++) {  // two players
-            for (i=0; i<2; i++) {  // two rows per player
-                let row = $('<tr>').addClass('row');
-                let headtext;
-                let color1;
-                let color2;
-                if (p==0 && i==0 && userRole=="A") {headtext="You kept"; row.addClass('green');}
-                if (p==0 && i==0 && userRole=="B") {headtext="They kept"; row.addClass('red');}
-                if (p==0 && i==1 && userRole=="A") {headtext="You gave"; row.addClass('black');}
-                if (p==0 && i==1 && userRole=="B") {headtext="They gave"; row.addClass('black');}
-                if (p==1 && i==0 && userRole=="A") {headtext="They kept"; row.addClass('red');}
-                if (p==1 && i==0 && userRole=="B") {headtext="You kept"; row.addClass('green');}
-                if (p==1 && i==1 && userRole=="A") {headtext="They gave"; row.addClass('green');}
-                if (p==1 && i==1 && userRole=="B") {headtext="You gave"; row.addClass('red');}
-                let headcolumn = $('<td>');
-                headcolumn.attr("id", 'headcolumn');
-                headcolumn.text(headtext);
-                row.append(headcolumn);
-                let nCols;
-                if (p==0 && userRole=="A") {nCols=userGives.length;}
-                if (p==0 && userRole=="B") {nCols=agentGives.length;}
-                if (p==1 && userRole=="A") {nCols=agentGives.length;}
-                if (p==1 && userRole=="B") {nCols=userGives.length;}
-                for (j=0; j<nCols; j++) {
-                    let column = $('<td>');
-                    let give;
-                    let keep;
-                    if (p==0 && userRole=="A") {give=userGives[j]; keep=userKeeps[j];}
-                    if (p==0 && userRole=="B") {give=agentGives[j]; keep=agentKeeps[j];}
-                    if (p==1 && userRole=="A") {give=agentGives[j]; keep=agentKeeps[j];}
-                    if (p==1 && userRole=="B") {give=userGives[j]; keep=userKeeps[j];}
-                    column.addClass('column');
-                    column.attr("id", "r"+i+"c"+j);
-                    if (i==0) {column.text(keep);}
-                    else {column.text(give);}
-                    row.append(column);
-                }
-                table.append(row);
-            }
-        }
-        $("#table").replaceWith(table);
-    }
 
+    // Change view after the user or agent moves
     function switchToUser() {
-        createTable();
-        $("#form").show();
-        $("#slider").show();      
-        $("#submit").show();
-        $("#give100").show();
-        $("#keep100").show();
+        $("#loading").hide();
+        $("#transfer").show();
+        $("#form").css('visibility', 'visible');
+        $("#slider").css('visibility', 'visible');      
+        $("#submit").css('visibility', 'visible');
         $("#form").slider({"disabled": false});
         if (userRole=="B"){
-            $('#aTitle').css({'background': 'white'});
-            $('#bTitle').css({'background': '#5cf7ff'});
             maxUser = match*agentGives[agentGives.length-1];
-        }
-        else {
-            $('#aTitle').css({'background': '#5cf7ff'});
-            $('#bTitle').css({'background': 'white'});
         }
         if (maxUser>0) {
             $("#submit").prop('disabled', true);
-            $("#aReward").hide();
-            $("#bReward").hide();
+            $("#sendA").css('visibility', 'hidden');
+            $("#sendB").css('visibility', 'hidden');
             $("#form").slider("option", 'max', maxUser);
             $("#form").slider("option", 'value', maxUser/2);
         }
         else {
             $("#submit").prop('disabled', false);
-            $("#aReward").show();
-            $("#bReward").show();
-            $("#aReward").text("0");
-            $("#bReward").text("0");
+            $("#sendA").css('visibility', 'visible');
+            $("#sendB").css('visibility', 'visible');
+            $("#sendA").text("$0");
+            $("#sendB").text("$0");
             $("#form").slider("option", 'max', 0);
             $("#form").slider("option", 'value', 0);  
-            $("#slider").hide();      
+            $("#slider").css('visibility', 'hidden');      
         }
         startTime = performance.now()  // track user response time
     }
 
-    function switchToAgent(turnTime) {
-        $("#form").hide();
-        $(".loading-bar").show();
+    function switchToAgent() {
+        $("#loading").hide();
+        $("#transfer").show();
+        $("#sendA").css('visibility', 'visible');
+        $("#sendB").css('visibility', 'visible');
+        let agentRole = "A";
+        let agentGive = agentGives[agentGives.length-1];
+        let agentKeep = agentKeeps[agentKeeps.length-1]
         if (userRole == "A") {
-            $('#aTitle').css({'background': 'white'});
-            $('#bTitle').css({'background': '#5cf7ff'});
+            $("#sendA").text(agentGive);
+            $("#sendB").text(agentKeep);
+            $("#form").slider("option", 'value', agentKeeps[agentKeeps.length-1]);
+            agentRole = "B";
         }
         else {
-            $('#aTitle').css({'background': '#5cf7ff'});
-            $('#bTitle').css({'background': 'white'});
+            $("#sendA").text(agentKeep);
+            $("#sendB").text(agentGive);
+            $("#form").slider("option", 'value', agentGives[agentGives.length-1]);
         }
+        $("#form").slider("option", 'max', maxAgent);
+        $("#form").slider({"disabled": true});
+        $("#form").css('visibility', 'visible');            
+        $("#slider").css('visibility', 'visible');      
+        $("#submit").css('visibility', 'hidden');
+        animateAvailable(agentRole, agentGive, agentKeep)
+        // switch to user after animation time
         setTimeout(function() {
-            createTable();
-            $("#aReward").show();
-            $("#bReward").show();
-            $(".loading-bar").hide();
-            if (userRole == "A") {
-                $("#aReward").text(agentGives[agentGives.length-1]);
-                $("#bReward").text(agentKeeps[agentKeeps.length-1]);
-                $("#form").slider("option", 'value', agentKeeps[agentKeeps.length-1]);
-            }
-            else {
-                $("#aReward").text(agentKeeps[agentKeeps.length-1]);
-                $("#bReward").text(agentGives[agentGives.length-1]);
-                $("#form").slider("option", 'value', agentGives[agentGives.length-1]);
-            }
-            $("#form").slider("option", 'max', maxAgent);
-            $("#form").slider({"disabled": true});
-            $("#form").show();            
-            $("#slider").show();      
-            if (complete) {gameComplete();}
-            else {
-                setTimeout(function() {
-                    switchToUser();
-                }, waitTime);
-            }
-        }, turnTime);
+            if (complete & userRole=="A") {gameOver();}
+            switchToUser();
+        }, animateTime);
     }
 
-    // Update models and DOM when "send" button is pressed
+    function switchToLoading() {
+        $("#loading").show();
+        $("#transfer").hide();
+    }
+
     function getUserMove() {
         let slideVal = $("#form").slider("option", "value");
         let userGive;
@@ -229,25 +154,32 @@ $(function() {  //on page load
         }
         userGives.push(userGive);
         userKeeps.push(userKeep);
-        createTable();
         return [userGive, userKeep];
     }
 
-    // called when user submits a move
+
+    // Communicate with the server through AJAX (views.updateGame())
     $("#submit").click(function callUpdate() {
         endTime = performance.now() // track user response time
         let moves = getUserMove();
         $("#submit").prop('disabled', true);
-        $("#submit").hide();
-        $("#aReward").hide();
-        $("#bReward").hide();
-        $("#give100").hide();
-        $("#keep100").hide();
+        $("#submit").css('visibility', 'hidden');
+        $("#sendA").css('visibility', 'hidden');
+        $("#sendB").css('visibility', 'hidden');
         let userGive = moves[0];
         let userKeep = moves[1];
         let userTime = (endTime-startTime);
-        // updateTurnTime();
-        switchToAgent(turnTime);
+        if (userRole=="A") {
+            $("#aNow").text("$"+userKeep);
+            $("#bNow").text("$"+(match*userGive));    
+        }
+        else {
+            $("#aNow").text("$"+(agentKeeps[agentKeeps.length-1]+userGive));
+            $("#bNow").text("$"+userKeep);
+        }
+        animateAvailable(userRole, userGive, userKeep);
+        // switch immediately to loading
+        switchToLoading();
         let form = $("#form");
         let giveData = $('<input type="hidden" name="userGive"/>').val(userGive);
         let keepData = $('<input type="hidden" name="userKeep"/>').val(userKeep);
@@ -272,53 +204,138 @@ $(function() {  //on page load
                 complete = returnData.complete;
                 doneGames = returnData.doneGames;
                 message = returnData.message;
-                if (complete) {gameComplete();}
-                else {switchToAgent(turnTime);}
+                let wait = (userRole=="A") ? animateTime+agentTime : 2*animateTime+agentTime;
+                setTimeout(function () {switchToAgent();}, wait);
+                if (complete & userRole=="B") {
+                    setTimeout(function () {gameOver();}, animateTime);
+                }
             }
         });
         return false;
     });
 
-    // Final page after game is complete
-    function gameComplete(pause=true) {
-        $(".loading-bar").hide();
-        $("#form").hide();
-        if (userRole=="A" && pause) {
-            $(".loading-bar").show();
-            setTimeout(function() {
-                createTable();
-                gameComplete(pause=false);
-            }, turnTime);
+
+    // Animate numbers and images changing
+    function animateAvailable(move, give=null, keep=null){
+        if (move=="capital") {
+            $("#aNow").text("$"+capital);
+            $("#bNow").text("$0");
+            let cap = $("#aNow").clone();
+            cap.text("$"+capital)
+            cap.attr("id", "animated")
+            cap.appendTo("body");
+            cap.animate({
+                'margin-left' : "+=35%",
+                'opacity': 0,
+                }, animateTime,
+                function() {cap.remove();});
+            // setTimeout(animateTime, function() {cap.remove();})
+        }
+        if (move=="A"){
+            lastKeep = keep;
+            $("#aNow").text("$"+keep);
+            $("#bNow").text("$"+3*give);
+            let toB = $("#aNow").clone();
+            toB.text("$"+give)
+            toB.attr("id", "animated")
+            toB.css("margin-left", "60%")
+            toB.appendTo("body");
+            toB.animate({
+                'margin-left': "+=170%",
+                'color': $("#bNow").css('color'),
+                'opacity': 0,
+                }, animateTime,
+                function() {toB.remove();});
+            let matchB = $("#bNow").clone();
+            matchB.text("$"+2*give)
+            matchB.attr("id", "animated")
+            matchB.css("margin-left", "100%")
+            matchB.appendTo("body");
+            matchB.animate({
+                'margin-left': "-=35%",
+                'opacity': 0,
+                }, animateTime,
+                function() {matchB.remove();});
+        }
+        if (move=="B") {
+            $("#aNow").text("$"+(lastKeep+give));
+            $("#bNow").text("$"+keep);
+            let toA = $("#bNow").clone();
+            toA.text("$"+give)
+            toA.attr("id", "animated")
+            toA.css("margin-left", "30%")
+            toA.appendTo("body");
+            toA.animate({
+                'margin-left': "-=170%",
+                'color': $("#aNow").css('color'),
+                'opacity': 0,
+                }, animateTime,
+                function() {
+                    toA.remove();
+                    animateTotal();
+                    setTimeout(function() {
+                        animateAvailable('capital');}, animateTime);
+                    });
+        }
+    }
+
+    function animateTotal() {
+        let userScore = userRewards.reduce((a, b) => a + b, 0);
+        let agentScore = agentRewards.reduce((a, b) => a + b, 0);
+         if (userRole == "A") {
+            $("#aTotal").text("$"+userScore);
+            $("#bTotal").text("$"+agentScore);
         }
         else {
-            $("#form").hide();
-            $("#aReward").hide();
-            $("#bReward").hide();
-            $("#give100").hide();
-            $("#keep100").hide();
-            $("#submit").hide();
-            $("#submit").prop('disabled', true);
-            $("#gameOver").show();
-            $("#flair").show();
-            // $("#flair").text();  // randomized text
-            $("#home").show();
-            $("#play").show();
-            if (doneGames) {
-                $("#play").text(message);
-                $("#play").removeAttr("href");
-            }
-            let userScore = userRewards.reduce((a, b) => a + b, 0);
-            let agentScore = agentRewards.reduce((a, b) => a + b, 0);
-            if (userRole == "A") {
-                $("#aScore").text(userScore);
-                $("#bScore").text(agentScore);
-            }
-            else {
-                $("#aScore").text(agentScore);
-                $("#bScore").text(userScore);
-            }
-            $("#aScore").show();
-            $("#bScore").show();
+            $("#aTotal").text("$"+agentScore);
+            $("#bTotal").text("$"+userScore);
         }
+        let mMid = $("#aNow").css('margin-top');
+        let upA = $("#aNow").clone();
+        $("#aNow").text("$0");
+        upA.css("margin-top", mMid)
+        upA.css("width", "10%")
+        upA.css("margin-left", "45%")
+        upA.appendTo("body");
+        upA.animate({
+            'margin-top': "-=15%",
+            'opacity': 0,
+            }, animateTime,
+            function() {upA.remove();});        
+        let upB = $("#bNow").clone();
+        $("#bNow").text("$0");
+        upB.css("margin-top", mMid)
+        upB.css("width", "10%")
+        upB.css("margin-left", "45%")
+        upB.appendTo("body");
+        upB.animate({
+            'margin-top': "-=15%",
+            'opacity': 0,
+            }, animateTime,
+            function() {upB.remove();});        
+    }
+
+
+    // Final page after game is complete
+
+    function gameOver() {
+        $("#loading").hide();
+        $("#transfer").hide();
+        $("#sendA").hide();
+        $("#sendB").hide();
+        $("#submit").prop('disabled', true);
+        $("#submit").hide();
+        $("#slider").hide();
+        $("#aNow").hide();
+        $("#bNow").hide();
+        $("#current").hide();
+        $("#transfer").show();
+        $("#form").show();
+        $("#form").replaceWith("<p id='gameOver'>Game Over</p>");
+        $("#total").text('Final Score');
+        $("#home").show();
+        $("#flair").show();
+        $("#play-again").show();
+        window.stop();  // less hacky solution?
     }
 });  // document load end

@@ -1,242 +1,199 @@
+/*Overall Layout*/
 body {
 	width: 100%;
 	height: 100%;
 	margin: 0;
-	font-size: 20px;
-	font-family: 'Oswald', sans-serif;
+	padding: 0;
+	font-size: 24px;
+	font-family: 'Roboto', sans-serif;
 	display: grid;
-	grid-template-rows: repeat(12, 1fr);
-	grid-template-columns: repeat(18, 1fr);
-	background: #d1d1d1;
+	grid-template-columns: 1fr 1fr 1fr;
+	grid-template-rows: 200px 200px 200px;
+	background: #f5ffff;
+	color: #314f9cff;
+	text-align: center;
+	align-content: space-between;
+}
+html {
+	margin-left: 10%;
+	margin-right: 10%;
 }
 
+.top {
+	grid-row: 1;
+}
+.middle {
+	grid-row: 2;
+}
+.bottom {
+	grid-row: 3;
+}
 .left {
-	grid-column: 4/7;
-	text-align: left;
+	grid-column: 1;
+	color: #66c3d2ff;
+}
+.center {
+	grid-column: 2;
 }
 .right {
-	grid-column: 13/16;
-	text-align: right;
+	grid-column: 3;
+	color: #d8388bff;
+}
+.totals {
+	height: 20%;
+	border-bottom: 1px solid black;
+}
+.nows {
+	height: 20%;
+	margin-top: 30%;
 }
 
-#aTitle {
-	margin: 0;
-	grid-row: 1/4;
-	grid-column: 1/10;
-	font-size: 36px;
-	text-align: center;
-	border-right: 1px solid black;
-	border-bottom: 3px solid black;
-}
-#bTitle {
-	margin: 0;
-	grid-row: 1/4;
-	grid-column: 10/19;
-	font-size: 36px;
-	text-align: center;
-	border-left: 1px solid black;
-	border-bottom: 3px solid black;	
-}
-
-#aReward {
-	width: 100%;
-	margin: 0;
-	grid-row: 5;
-	font-size: 36px;
-}
-#bReward {
-	width: 100%;
-	margin: 0;
-	grid-row: 5;
-	font-size: 36px;
-}
-#give100 {
-	width: 100%;
-	margin: 0;
-	grid-row: 8;
-	font-size: 18px;
-	align-self: flex-end;
-}
-#keep100 {
-	width: 100%;
-	margin: 0;
-	grid-row: 8;
-	font-size: 18px;
-	align-self: flex-end;
-}
-
-
-
-#form {
+#imgA, #imgB {
 	width: 100%;
 	height: 100%;
-	margin: 0;
-	grid-row: 6/8;
-	grid-column: 4/16;
-	border-radius: 50px;
 }
-#slider {
-	margin: 0;
-	margin-left: -2.5%;
-	width: 5%;
-	height: 112%;
-	border-radius: 50px;
-	background: #0005a3;
+#cash {
+	margin: 0 10%;
+	grid-row: 2;
+	grid-column: 2;
+	display: flex;
+	justify-content: space-between;
+}
+#sendA {
+	color: #66c3d2ff;
+}
+#sendB {
+	color: #d8388bff;
+}
+#form {
+	margin-left: 10%;
+	width: 80%;
+	background: #a3a3a3;
 }
 #submit {
-	width: 100%;
-	height: 100%;
-	grid-row: 2/3;
-	grid-column: 9/11;
-	margin: 0;
-	padding: 0;
-	text-align: center;
-	font-size: 18px;
-	border: 3px solid black;
-	background: #ffd500;
-	border-radius: 50px;
+	font-size: inherit;
+	font-family: inherit;
+	color: inherit;
+	background: #f0e200ff;
+	margin-top: 10%;
+	border: 1px solid black;
+	border-radius: 30px;
+	width: 30%;
+	box-shadow: 3px 3px rgba(0, 0, 0, 0.2);
 }
-
-/* https://dev.to/vaibhavkhulbe/let-s-make-and-eat-those-css3-progress-bars-217a */
-.loading-bar {
-	grid-row: 6/8;
-	grid-column: 4/16;
-	position: relative;
-	margin: 0 auto;
-	height: 100%;
-	width: 100%;
-	border-radius: 50px;
+#submit:hover {
+	cursor: pointer;
+	box-shadow: 3px 3px rgba(0, 0, 0, 0.6);
 }
-span {
-	display: block;
-	position: relative;
-	height: 100%;
-	width: 100%;
-	border-radius: 50px;
-	background-image: linear-gradient(to bottom, #a1c5ff, #2e38ff 60%);
-	box-shadow:
-	inset 0 2px 9px  rgba(255,255,255,0.3),
-	inset 0 -2px 6px rgba(0,0,0,0.4);
-	overflow: hidden;
+#submit:disabled {
+	background: white;
+	box-shadow: 3px 3px rgba(0, 0, 0, 0.2);
+	cursor: auto;
+	color: #a3a3a3;
 }
-span:after {
-	content: "";
-	position: absolute;
-	top: 0px; left: 0; bottom: 0; right: 0;
-	background-image: linear-gradient(
-		-45deg, 
-		rgba(255, 255, 255, .2) 25%, 
-		transparent 25%, 
-		transparent 50%, 
-		rgba(255, 255, 255, .2) 50%, 
-		rgba(255, 255, 255, .2) 75%,
-		transparent 75%, 
-		transparent
-	);
-	z-index: 1;
-	background-size: 50px 50px;
-	border-top-right-radius: 8px;
-	border-bottom-right-radius: 8px;
-	border-top-left-radius: 20px;
-	border-bottom-left-radius: 20px;
-	overflow: hidden;
+#form {
+	border: 0px solid black;
+	border-radius: 30px;
 }
-.loading-bar > span:after, .animate > span > span { 
-	animation: load 1s infinite;
+#slider {
+	margin-top: 0.7%;
+	margin-left: -5%;
+	width: 10%;
+	border-radius: 30px;
+	background: #f0e200ff;
+	border: none;
 }
-@keyframes load {
-	0% {background-position: 0 0;}
-	100% {background-position: 50px 50px;}
-}
-
 #gameOver {
 	margin: 0;
-	width: 100%;
-	height: 100%;
-	grid-row: 6/8;
-	grid-column: 6/14;
-	color: blue;
-	font-size: 48px;
-	display: flex;
-	justify-content: center;
-	align-items: center;
+	margin-top: 22%;
+	font-weight: bold;
 }
-#aScore {
-	margin: 0;
-	width: 100%;
-	height: 100%;
-	grid-row: 6/8;
-	grid-column: 1/6;
-	font-size: 48px;
-	display: flex;
-	justify-content: center;
-	align-items: center;
+#playerA, #playerB {
+	height: 20%;
+	margin-top: 60%;
 }
-#bScore {
-	margin: 0;
-	width: 100%;
-	height: 100%;
-	grid-row: 6/8;
-	grid-column: 14/19;
-	font-size: 48px;
-	display: flex;
-	justify-content: center;
-	align-items: center;
-}
-#flair {
-	margin: 0;
-	width: 100%;
-	height: 100%;
-	grid-row: 4/6;
-	grid-column: 1/19;
-	font-size: 24px;
-	display: flex;
-	justify-content: center;
-	align-items: center;
+#nameA, #nameB {
+	height: 20%;
+	margin-top: 70%;
 }
 #home {
-	margin: 0;
-	width: 100%;
-	height: 100%;
-	grid-row: 8/10;
-	grid-column: 1/10;
-	font-size: 24px;
-	display: flex;
-	justify-content: center;
-	align-items: center;
+	width: 30%;
+	height: 20%;
+	margin-left: 35%;
+	color: #314f9cff;
 }
-#play {
-	margin: 0;
-	width: 100%;
-	height: 100%;
-	grid-row: 8/10;
-	grid-column: 10/19;
-	font-size: 24px;
-	display: flex;
-	justify-content: center;
-	align-items: center;
+#flair {
+	color: #a3a3a3;
+	font-family: 'Jaldi', sans-serif;
+}
+#play-again {
+	width: 40%;
+	height: 20%;
+	margin-left: 30%;
+	color: #314f9cff;
 }
 
-
-#table {
-	justify-content: center;
-	grid-row: 10/13;
-	grid-column: 1/19;
-	width: 100%;
-	text-align: center;
-	table-layout: fixed;
-	border-top: 3px solid black;
-	border-bottom: 3px solid black;
-	background: white;
+/* Animations */
+#animated {
+	width: min-content;
 }
-.green {color: green;}
-.red {color: red;}
-.black {color: black;}
-.green-to-red {background: linear-gradient(90deg, green, red);}
-.red-to-green {background: linear-gradient(90deg, red, green);}
 
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+/* Loading Bar, from https://loading.io/css/ */
+#loading {
+	margin-top: 15%;
+}
+.lds-ellipsis {
+  display: inline-block;
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+.lds-ellipsis div {
+  position: absolute;
+  top: 33px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #a3a3a3;
+  animation-timing-function: cubic-bezier(0, 1, 1, 0);
+}
+.lds-ellipsis div:nth-child(1) {
+  left: 8px;
+  animation: lds-ellipsis1 0.6s infinite;
+}
+.lds-ellipsis div:nth-child(2) {
+  left: 8px;
+  animation: lds-ellipsis2 0.6s infinite;
+}
+.lds-ellipsis div:nth-child(3) {
+  left: 32px;
+  animation: lds-ellipsis2 0.6s infinite;
+}
+.lds-ellipsis div:nth-child(4) {
+  left: 56px;
+  animation: lds-ellipsis3 0.6s infinite;
+}
+@keyframes lds-ellipsis1 {
+  0% {
+    transform: scale(0);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes lds-ellipsis3 {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0);
+  }
+}
+@keyframes lds-ellipsis2 {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(24px, 0);
+  }
 }

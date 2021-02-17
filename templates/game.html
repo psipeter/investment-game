@@ -3,6 +3,8 @@
 
 <head>
 	<title>Game</title>
+	<link rel="preconnect" href="https://fonts.gstatic.com">
+	<link href="https://fonts.googleapis.com/css2?family=Jaldi:wght@700&family=Roboto:wght@300&display=swap" rel="stylesheet">
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	{% load static %}
@@ -13,22 +15,35 @@
 </head>
 
 <body>
-	<div id="aTitle"><p>{{A}}</p></div>
-	<div id="bTitle"><p>{{B}}</p></div>
-	<p class='left' id="aReward"></p>
-	<p class='right' id="bReward"></p>
-	<p id="give100">Give 100%</p>
-	<p id="keep100">Keep 100%</p>
-	<p id="aScore"></p>
-	<p id="bScore"></p>
-	<p id="gameOver">Game Over</p>
-	<p id="flair">Isn't this fun!</p>
-	<p id="home"><a href="{% url 'home' %}">Home</a></p>
-	<p id="play"><a href="{% url 'game' %}">Play Again</a></p>
-	<form id="form">{% csrf_token %}<div id="slider" class="ui-slider-handle"></div></form>
-	<input type="submit" id="submit" updateURL="{% url 'updateGame' %}" value="send">
-	<div class="loading-bar animate"><span></span></div>
-	<table id="table"></table>
+	<p id="aTotal" class="top left totals">$0</p>
+	<p id="total" class="top center totals">Total</p>
+	<p id="bTotal" class="top right totals">$0</p>
+	<p id="aNow" class="top left nows" href="{% url 'home' %}">$0</p>
+	<p id="current" class="top center nows">Currently Available</p>
+	<p id="bNow" class="top right nows" href="{% url 'game' %}">$10</p>
+	<img id="imgA" class="middle left" src="{% static 'user1.png' %}">
+	<div id="transfer" class="middle">
+		<div id="cash">
+			<p id="sendA">$0</p>
+			<p id="sendB">$0</p>
+		</div>
+		<form id="form">{% csrf_token %}
+			<div id="slider" class="ui-slider-handle"></div>
+		</form>
+		<input type="submit" id="submit" updateURL="{% url 'updateGame' %}" value="send">
+	</div>
+	<div id="loading" class="middle center">
+		<div class="lds-ellipsis"><div></div><div></div><div></div><div></div></div>
+	</div>
+	<img id="imgB" class="middle right" src="{% static 'user3.png' %}">
+	<p id='playerA' class="middle left">Player A</p>
+	<p id='playerB' class="middle right">Player B</p>
+	<p id="nameA" class="middle left"></p>
+	<p id="nameB" class="middle right"></p>
+	<a id="home" class="top left nows" href="{% url 'home' %}">Home</a>
+	<p id="flair" class="top center nows">Isn't This Fun!</p>
+	<a id="play-again" class="top right nows" href="{% url 'game' %}">Play Again</a>
+
 	<script type="text/javascript">
 		//pass django variables to external javascript
 		let userRole = "{{game.userRole}}";
