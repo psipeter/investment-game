@@ -9,191 +9,104 @@ $(function() {  //on page load
     let doneRequiredBool = (doneRequired != "None") ? true : false;
     let doneBonusBool = (doneBonus != "None") ? true : false;
     let doneCashBool = (doneCash != "None") ? true : false;
-    console.log(nRequired, doneRequired)
 
-    // Set background colors and activation for each cell
+    // Redirect on click
+    $('#information-box').click(function(e) {
+        window.location.href=$(this).attr("href");
+    });
 
-    $('#information-link').addClass('green');
-    $("#information-link").hover(
-        function() {
-            $("#information-bg").addClass("fg");
-            $("#information-bg").removeClass("bg");
-        }, function() {
-            $("#information-bg").addClass("bg");
-            $("#information-bg").removeClass("fg");
-        }
-    );  
+    $('#consent-box').click(function(e) {
+        window.location.href=$(this).attr("href");
+    });
 
-    $('#consent-link').addClass('green');
-    $("#consent-link").hover(
-        function() {
-            $("#consent-bg").addClass("fg");
-            $("#consent-bg").removeClass("bg");
-        }, function() {
-            $("#consent-bg").addClass("bg");
-            $("#consent-bg").removeClass("fg");
-        }
-    );  
+    $('#survey-box').click(function(e) {
+        window.location.href=$(this).attr("href");
+    });
 
+    $('#tutorial-box').click(function(e) {
+        window.location.href=$(this).attr("href");
+    });
+
+    $('#required-box').click(function(e) {
+        window.location.href=$(this).attr("href");
+    });
+
+    $('#bonus-box').click(function(e) {
+        window.location.href=$(this).attr("href");
+    });
+
+    $('#stats-box').click(function(e) {
+        window.location.href=$(this).attr("href");
+    });
+
+    $('#cash-box').click(function(e) {
+        window.location.href=$(this).attr("href");
+    });
+
+    $('#feedback-box').click(function(e) {
+        window.location.href=$(this).attr("href");
+    });
+
+    $('#information-text').text('Information [✔]');
+    $('#consent-text').text('Consent [✔]');
     if (doneSurveyBool) {
-        $('#survey-link').addClass('green');
+        $('#survey-text').text('Survey [✔]');
     }
-    else {
-        $('#survey-link').addClass('yellow');
-    }
-    $("#survey-link").hover(
-        function() {
-            $("#survey-bg").addClass("fg");
-            $("#survey-bg").removeClass("bg");
-        }, function() {
-            $("#survey-bg").addClass("bg");
-            $("#survey-bg").removeClass("fg");
-        }
-    ); 
-
     if (doneTutorialBool) {
-        $('#tutorial-link').addClass('green');
-        $('#tutorial-count').addClass('green-flat');
-        // $('#tutorial-count').text("1/1");
-        $('#tutorial-count').text('complete');
+        $('#tutorial-text').text('Tutorial [✔]');
     }
-    else {
-        if (doneSurveyBool) {
-            $('#tutorial-link').addClass('yellow');
-            $('#tutorial-count').addClass('yellow-flat');
-            // $('#tutorial-count').text("0/1");
-            $('#tutorial-count').text("incomplete");
-        }
-        else {
-            $('#tutorial-link').addClass('gray');
-            $('#tutorial-count').addClass('gray');
-            $('#tutorial-link').removeAttr('href');
-            // $('#tutorial-count').text("0/1");            
-            $('#tutorial-count').text("incomplete");            
-        }
-    }
-    if (doneSurveyBool){
-        $("#tutorial-link").hover(
-            function() {
-                $("#tutorial-bg").addClass("fg");
-                $("#tutorial-bg").removeClass("bg");
-            }, function() {
-                $("#tutorial-bg").addClass("bg");
-                $("#tutorial-bg").removeClass("fg");
-            }
-        );  
-    }
-
     if (doneRequiredBool) {
-        $('#required-link').addClass('green-flat');
-        $('#required-count').addClass('green-flat');
-        $('#required-link').removeAttr('href');
-        $('#required-count').text('complete');
+        $('#required-text').text('Required Games [✔]');
     }
     else {
+        $('#stats-box').addClass('inactive');
+        $('#stats-box').off('click');
+        $('#stats-box').click(function(e) {
+            alert("To view game statistics, first play more bonus games");
+        });
         if (doneTutorialBool) {
-            $('#required-count').addClass('yellow-flat');
-            $('#required-count').text(nRequired+"/"+N_REQUIRED);
-            $('#required-link').addClass('yellow');
-            $("#required-link").hover(
-                function() {
-                    $("#required-bg").addClass("fg");
-                    $("#required-bg").removeClass("bg");
-                }, function() {
-                    $("#required-bg").addClass("bg");
-                    $("#required-bg").removeClass("fg");
-                }
-            );        
-        }
+            $('#required-text').text(
+                "Required Games ["+nRequired+"/"+N_REQUIRED+"]");
+            }
         else {
-            $('#required-link').addClass('gray');
-            $('#required-count').addClass('gray');
-            $('#required-link').removeAttr('href');
-            $('#required-count').text('incomplete');
+            $('#required-box').addClass('inactive');
+            $('#required-box').off('click');
+            $('#required-box').click(function(e) {
+                alert("To play required games, first complete the tutorial");
+            });
         }
     }
-
     if (doneBonusBool) {
-        $('#bonus-link').addClass('green');
-        $('#bonus-count').addClass('green-flat');
-        $('#bonus-link').removeAttr('href');
-        $('#bonus-count').text('complete');
+        $('#bonus-text').text('Bonus Games [✔]');
     }
     else {
         if (doneRequiredBool) {
-            $('#bonus-link').addClass('yellow');
-            $('#bonus-count').addClass('yellow-flat');
-            $('#bonus-count').text(nBonus+"/"+N_BONUS);
-            $("#bonus-link").hover(
-                function() {
-                    $("#bonus-bg").addClass("fg");
-                    $("#bonus-bg").removeClass("bg");
-                }, function() {
-                    $("#bonus-bg").addClass("bg");
-                    $("#bonus-bg").removeClass("fg");
-                }
-            ); 
+            $('#bonus-text').text(
+                "Bonus Games ["+nBonus+"/"+N_BONUS+"]");
         }
         else {
-            $('#bonus-link').addClass('gray');            
-            $('#bonus-count').addClass('gray');            
-            $('#bonus-link').removeAttr('href');
-            $('#bonus-count').text('incomplete');
+            $('#bonus-box').addClass('inactive');
+            $('#bonus-box').off('click');
+            $('#bonus-box').click(function(e) {
+                alert("To play bonus games, first complete required games");
+            });
         }
     }
-
     if (doneCashBool) {
-        $('#cash-out-link').addClass('green');
-        $("#cash-out-link").hover(
-            function() {
-                $("#cash-bg").addClass("fg");
-                $("#cash-bg").removeClass("bg");
-            }, function() {
-                $("#cash-bg").addClass("bg");
-                $("#cash-bg").removeClass("fg");
-            }
-        );  
+        $('#cash-text').text('Cash Out [✔]');
     }
     else {
         if (doneSurveyBool & doneTutorialBool & doneRequiredBool) {
-            $('#cash-out-link').addClass('yellow');
-            $("#cash-out-link").hover(
-                function() {
-                    $("#cash-bg").addClass("fg");
-                    $("#cash-bg").removeClass("bg");
-                }, function() {
-                    $("#cash-bg").addClass("bg");
-                    $("#cash-bg").removeClass("fg");
-                }
-            );  
+            // 
         }
         else {
-            $('#cash-out-link').addClass('gray');            
-            $('#cash-out-link').removeAttr('href');
+            $('#cash-box').addClass('inactive');
+            $('#cash-box').off('click');
+            $('#cash-box').click(function(e) {
+                alert("To cash out, first complete the required games,\
+                    then play bonus games to earn more rewards");
+            });
         }
     }
-
-
-    $("#stats-link").hover(
-        function() {
-            $("#stats-bg").addClass("fg");
-            $("#stats-bg").removeClass("bg");
-        }, function() {
-            $("#stats-bg").addClass("bg");
-            $("#stats-bg").removeClass("fg");
-        }
-    );
-
-    $('#feedback-link').addClass('blue');
-    $("#feedback-link").hover(
-        function() {
-            $("#feedback-bg").addClass("fg");
-            $("#feedback-bg").removeClass("bg");
-        }, function() {
-            $("#feedback-bg").addClass("bg");
-            $("#feedback-bg").removeClass("fg");
-        }
-    );  
-
 
 });  // document load end

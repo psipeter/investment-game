@@ -181,7 +181,7 @@ def startGame(request):
 			'agentKeeps': list(game.historyToArray("agent", "keep")),
 			'agentRewards': list(game.historyToArray("agent", "reward")),
 		}
-		return render(request, "game.html", context=context)
+		return render(request, "game2.html", context=context)
 	else:
 		error(request, 'You must complete the tutorial before playing the required games')
 		return redirect('home')

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>Game</title>
+	<link rel="preconnect" href="https://fonts.gstatic.com">
+	<link href="https://fonts.googleapis.com/css2?family=Jaldi:wght@700&family=Roboto:wght@300&display=swap" rel="stylesheet">
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	{% load static %}
+	<link rel="stylesheet" href="{% static 'game2.css' %}">
+	<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+	<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+	<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"> </script>
+</head>
+
+<body>
+	<p id="aTotal" class="top left midwayTop">$0</p>
+	<p id="total" class="top center midwayTop">Total</p>
+	<p id="bTotal" class="top right midwayTop">$0</p>
+	<p id="aNow" class="top left midway" href="{% url 'home' %}">$0</p>
+	<p id="current" class="top center midway">Currently Available</p>
+	<p id="bNow" class="top right midway" href="{% url 'game' %}">$10</p>
+	<p class="top left low">Player A</p>
+	<p class="top right low">Player B</p>
+	<img id="imgA" class="middle left" src="{% static 'user1.png' %}">
+	<div id="transfer" class="middle">
+		<div id="cash">
+			<p id="sendA">$0</p>
+			<p id="sendB">$0</p>
+		</div>
+		<form id="form">{% csrf_token %}
+			<div id="slider" class="ui-slider-handle"></div>
+		</form>
+		<input type="submit" id="submit" updateURL="{% url 'updateGame' %}" value="send">
+	</div>
+	<div id="loading" class="middle center">
+		<div class="lds-ellipsis"><div></div><div></div><div></div><div></div></div>
+	</div>
+	<img id="imgB" class="middle right" src="{% static 'user3.png' %}">
+	<p id="nameA" class="bottom left high"></p>
+	<p id="nameB" class="bottom right high"></p>
+	<a id="home" class="bottom left midwayBot" href="{% url 'home' %}">Home</a>
+	<p id="flair" class="bottom center midwayBot">Isn't This Fun!</p>
+	<a id="play-again" class="bottom right midwayBot" href="{% url 'game' %}">Play Again</a>
+
+	<script type="text/javascript">
+		//pass django variables to external javascript
+		let userRole = "{{game.userRole}}";
+		let capital = Number("{{game.capital}}");
+		let match = Number("{{game.match}}");
+		let userGives = "{{userGives}}"
+		let userKeeps = "{{userKeeps}}"
+		let userRewards = "{{userRewards}}"
+		let agentGives = "{{agentGives}}"
+		let agentKeeps = "{{agentKeeps}}"
+		let agentRewards = "{{agentRewards}}"
+	</script>
+	<script src="{% static 'game2.js' %}"></script>
+</body>
+</html>

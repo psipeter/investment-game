@@ -6,17 +6,63 @@
 	<link rel="preconnect" href="https://fonts.gstatic.com">
 	<link href="https://fonts.googleapis.com/css2?family=Jaldi:wght@700&family=Roboto:wght@300&display=swap" rel="stylesheet">
 	{% load static %}
-	<link rel="stylesheet" href="{% static 'logout.css' %}">
+	<link rel="stylesheet" href="{% static 'tutorial.css' %}">
 	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 </head>
 
 <body>
-	<div id="top-bar"></div>
-		<h1>TUTORIAL</h1>
-	<div id="main">
-		<p>it's a tutorial...</p>
+	<div id="top-bar">
+		<h1>TUTORIAL</h1>		
+		<h3 id="t1" class="title">Introduction</h3>		
+		<h3 id="t2" class="title">Rules</h3>		
 	</div>
+
+	<div id="m1" class="main">
+		<div id='m1a' class="row">
+			<p class="text">The investment game is a two player, turn based game</p>
+			<img src="{% static 'two-player.png' %}" class="img">
+		</div>
+		<div id='m1b' class="row">
+			<img src="{% static 'sending.png' %}" class="img">
+			<p class="text">Each turn, one player sends points to the other</p>
+		</div>
+		<div id='m1c' class="row">
+			<div>
+				<p class="text">This action represents doing something like</p>
+				<ul id="m1c1">
+					<li>doing somebody a favor</li>
+					<li>investing in a startup</li>
+					<li>lending money to a friend</li>
+				</ul>
+			</div>
+			<img src="{% static 'dollar-coin.png' %}" class="img">
+		</div>
+	</div>
+
+	<div id="m2" class="main">
+		<p id="m2a">Each round of the game has four (4) steps</p>
+		<div id="m2b" imgURL="{% static 'game.png' %}">
+			<p id="m2b1" class="white">Player A receives $10</p>
+			<p id="m2b2" class="white">Player A sends $0-10 (M) to Player B and keeps the rest ($10-M)</p>
+			<p id="m2b3" class="white">Player B receives 3 x M</p>
+			<p id="m2b4" class="white">Player B sends $0-3M back to Player A</p>
+		</div>
+		<p id="m2c">Each game has five (5) rounds</p>
+
+	</div>
+
 	<div id="bottom-bar">
-		<p><a href="{% url 'home' %}">Finish</a></p>
+		<div id="back-next">
+			<button type="button" disabled id="back">Back</button>
+			<button type="button" id="next">Next</button>
+		</div>
+		<div id="progress-bar-bg">
+			<div id="progress-bar-fg"></div>	
+		</div>
+		<p hidden><a href="{% url 'home' %}">Finish</a></p>
 	</div>
+
+	<script src="{% static 'tutorial.js' %}"></script>
 </body>

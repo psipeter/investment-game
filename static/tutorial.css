@@ -1,0 +1,124 @@
+/*Overall Layout*/
+body {
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	font-size: 24px;
+	font-family: 'Roboto', sans-serif;
+	display: grid;
+	grid-template-rows: 1fr 4fr 1fr;
+	background: #f5ffff;
+	color: rgba(60, 78, 156, 1);
+}
+html {
+	margin-left: 10%;
+	margin-right: 10%;
+}
+h1, h3 {
+	margin: 0;
+	padding-bottom: 0.5%;
+	text-align: center;
+	background: white;
+}
+#top-bar {
+	grid-row: 1;
+}
+.title {
+	text-decoration: underline;
+}
+.main {
+	grid-row: 2;
+	display: grid;
+}
+.row {
+	display: flex;
+	justify-content: space-between;
+}
+.text {
+	margin: 0;
+}
+.img {
+	height: 70%;
+	width: 20%;
+}
+#bottom-bar {
+	grid-row: 3;
+}
+
+/*Main Content*/
+#m1 {
+	grid-template-rows: 1fr 1fr 1fr;	
+}
+#m1c1 {
+	margin-left: 5%;
+}
+#m2b {
+	background: 
+		linear-gradient(
+			rgba(0, 0, 0, 0.6),
+			rgba(0, 0, 0, 0.6)
+		),
+		url(/static/game.png);
+	background-size: cover;
+	width: 100%;
+	height: 100%;
+	position: relative;
+	margin: 0 auto;
+}
+.white {
+	display: inline-block;
+	background: rgba(0, 0, 0, 0.5);
+	padding: 4px 8px;
+	width: auto;
+	color: white;
+	font-weight: bold;
+	margin-left: 5%;
+}
+
+
+/*Back and Next Buttons*/
+#back-next {
+	display: flex;
+	justify-content: center;
+}
+#back, #next {
+	font-size: inherit;
+	font-family: inherit;
+	color: inherit;
+	background: inherit;
+	border: none;
+}
+#back {
+	border-right: 1px solid black;
+}
+#next {
+	border-left: 1px solid black;
+}
+#back:hover, #next:hover {
+	cursor: pointer;
+	font-weight: bold;
+}
+#back:disabled, #next:disabled {
+	font-weight: normal;
+	cursor: auto;
+	color: gray;
+}
+
+/*Progress Bar*/
+#progress-bar-bg {
+	margin-top: 2%;
+	margin-left: 20%;
+	width: 60%;
+	height: 20%;
+	background: gray;
+	border-radius: 50px;
+}
+#progress-bar-fg {
+	justify-content: left;
+	margin-left: 0%;
+	width: 0%;
+	height: 100%;
+	background: rgba(60, 78, 156, 1);
+	border-radius: 50px;
+}
