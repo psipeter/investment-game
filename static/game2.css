@@ -10,7 +10,7 @@ body {
 	grid-template-columns: 1fr 1fr 1fr;
 	grid-template-rows: 200px 200px 200px;
 	background: #f5ffff;
-	color: rgba(60, 78, 156, 1);
+	color: #314f9cff;
 	text-align: center;
 	align-content: space-between;
 }
@@ -77,8 +77,8 @@ html {
 	color: #d8388bff;
 }
 #total,#aTotal,#bTotal {
-	height: 15%;
-	background: white;
+	height: 20%;
+	border-bottom: 1px solid black;
 }
 
 #form {
@@ -135,12 +135,17 @@ html {
 #home {
 	width: 30%;
 	height: 20%;
-	margin-left: 35%
+	margin-left: 35%;
+	color: #314f9cff;
+}
+#flair {
+	color: #314f9cff;
 }
 #play-again {
 	width: 40%;
 	height: 20%;
-	margin-left: 30%
+	margin-left: 30%;
+	color: #314f9cff;
 }
 
 /* Animations */
