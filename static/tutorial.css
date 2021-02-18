@@ -38,43 +38,266 @@ h1, h3 {
 .text {
 	margin: 0;
 }
-.img {
-	height: 70%;
-	width: 20%;
-}
 #bottom-bar {
 	grid-row: 3;
 }
 
 /*Main Content*/
 #m1 {
-	grid-template-rows: 1fr 1fr 1fr;	
+	margin-top: 2%;
+	grid-template-rows: 110px 110px 130px;
 }
 #m1c1 {
+	margin-top: 2%;
 	margin-left: 5%;
 }
-#m2b {
-	background: 
-		linear-gradient(
-			rgba(0, 0, 0, 0.6),
-			rgba(0, 0, 0, 0.6)
-		),
-		url(/static/game.png);
-	background-size: cover;
+#img1a {
+	height: 80%;
+	width: 20%;
+}
+#img1b {
+	height: 80%;
+	width: 20%;
+}
+#img1c {
+	height: 80%;
+	width: 20%;
+}
+#m2, #m3 {
 	width: 100%;
-	height: 100%;
-	position: relative;
-	margin: 0 auto;
+	grid-template-rows: 80px 250px 80px;	
+	grid-template-columns: 1fr 1fr 1fr;	
 }
-.white {
-	display: inline-block;
-	background: rgba(0, 0, 0, 0.5);
-	padding: 4px 8px;
-	width: auto;
-	color: white;
-	font-weight: bold;
+#m2a, #m3a, #m4a, #m4b, #m4c, #m4d, #m4e, #m4f {
+	grid-row: 1;
+	grid-column: 1/4;
+	text-align: center;
+}
+.top {
+	height: 20%;
+	margin-top: 2%;
+}
+.middle {
+	height: 20%;
+	margin-top: 10%;
+}
+.bottom {
+	height: 20%;
+	margin-top: 18%;
+}
+.left {
+	grid-row: 2;
+	grid-column: 1/4;
+	color: #66c3d2ff;
+	text-align: left;
+}
+.center {
+	grid-row: 2;
+	grid-column: 1/4;
+	text-align: center;
+}
+.right {
+	grid-row: 2;
+	grid-column: 1/4;
+	color: #d8388bff;
+	text-align: right;
+}
+.totals {
+	border-bottom: 1px solid black;
+}
+.game {
 	margin-left: 5%;
+	margin-right: 5%;
 }
+.bubble {
+	text-align: center;
+	grid-row: 2;
+	grid-column: 1/4;
+	font-size: 16px;
+	padding: 4px;
+	background: gray;
+	border: 1px solid black;
+	border-radius: 10px;
+	color: white;
+}
+#m2b1 {
+	margin-top: 6%;
+	margin-left: 5%;
+	height: 8%;
+	width: 15%;
+}
+#m2b2 {
+	margin-top: 13%;
+	margin-left: 20%;
+	height: 15%;
+	width: 15%;
+}
+#m2b3 {
+	margin-top: 6%;
+	margin-left: 75%;
+	height: 8%;
+	width: 20%;
+}
+#m2b4 {
+	margin-top: 13%;
+	margin-left: 65%;
+	height: 15%;
+	width: 15%;
+}
+#m2b5 {
+	margin-top: 6%;
+	margin-left: 45%;
+	height: 8%;
+	width: 10%;
+}
+#m2c, #m3c, #m3d, #m3e {
+	margin-top: -2%;
+	text-align: center;
+	grid-row: 3;
+	grid-column: 1/4;
+}
+#m3c {
+	width: 50%;
+	margin-left: 0%;
+}
+#m3d {
+	width: 50%;
+	margin-left: 50%;
+}
+#m3e {
+	width: 100%;
+	margin-left: 0%;
+}
+
+.white {
+	color: gray;
+	font-weight: bold;
+}
+
+
+
+/* Slider */
+#cash {
+	margin: 0 10%;
+	grid-row: 2;
+	grid-column: 2;
+	display: flex;
+	justify-content: space-between;
+}
+#sendA {
+	color: #66c3d2ff;
+}
+#sendB {
+	color: #d8388bff;
+}
+#form {
+	margin-left: 10%;
+	width: 80%;
+	background: #a3a3a3;
+}
+#submit {
+	font-size: inherit;
+	font-family: inherit;
+	color: inherit;
+	background: #f0e200ff;
+	margin-top: 5%;
+	margin-left: 35%;
+	border: 1px solid black;
+	border-radius: 30px;
+	width: 30%;
+	box-shadow: 3px 3px rgba(0, 0, 0, 0.2);
+}
+#submit:hover {
+	cursor: pointer;
+	box-shadow: 3px 3px rgba(0, 0, 0, 0.6);
+}
+#submit:disabled {
+	background: white;
+	box-shadow: 3px 3px rgba(0, 0, 0, 0.2);
+	cursor: auto;
+	color: #a3a3a3;
+}
+#transfer {
+	margin-top: 11%;
+	width: 60%;
+	margin-left: 20%;
+	grid-row: 2;
+	grid-column: 1/4;
+}
+#form {
+	border: 0px solid black;
+	border-radius: 30px;
+}
+#slider {
+	margin-top: 0.7%;
+	margin-left: -5%;
+	width: 10%;
+	border-radius: 30px;
+	background: #f0e200ff;
+	border: none;
+}
+
+/* Loading Bar, from https://loading.io/css/ */
+#loading {
+	margin-top: 15%;
+}
+.lds-ellipsis {
+  display: inline-block;
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+.lds-ellipsis div {
+  position: absolute;
+  top: 33px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #a3a3a3;
+  animation-timing-function: cubic-bezier(0, 1, 1, 0);
+}
+.lds-ellipsis div:nth-child(1) {
+  left: 8px;
+  animation: lds-ellipsis1 0.6s infinite;
+}
+.lds-ellipsis div:nth-child(2) {
+  left: 8px;
+  animation: lds-ellipsis2 0.6s infinite;
+}
+.lds-ellipsis div:nth-child(3) {
+  left: 32px;
+  animation: lds-ellipsis2 0.6s infinite;
+}
+.lds-ellipsis div:nth-child(4) {
+  left: 56px;
+  animation: lds-ellipsis3 0.6s infinite;
+}
+@keyframes lds-ellipsis1 {
+  0% {
+    transform: scale(0);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes lds-ellipsis3 {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0);
+  }
+}
+@keyframes lds-ellipsis2 {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(24px, 0);
+  }
+}
+
+
 
 
 /*Back and Next Buttons*/
