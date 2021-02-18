@@ -1,5 +1,5 @@
 $(function() {  // on page load
-    let progress = 0;
+    let progress = 3;
     let maxProgress = 4;
     let fadeTime = 2000;
     updateMain();  // Fade in first page
@@ -137,14 +137,16 @@ $(function() {  // on page load
         $("#form").slider("option", 'max', maxUser);
         $("#form").slider("option", 'value', maxUser/2);
         $("#form").slider({"disabled": true});
+        $("#submit").css('visibility', 'hidden');
         $("#sendA").css('visibility', 'hidden');
         $("#sendB").css('visibility', 'hidden');
         animateCapital(fadeTime, "m4", capital);
         setTimeout(function(){
             $("#transfer").fadeIn(fadeTime);
             $("#form").slider({"disabled": false});
+            $("#submit").css('visibility', 'visible');
             $("#submit").prop('disabled', true);
-            $("#m4a").fadeOut(fadeTime);
+            $("#m4a").fadeOut(fadeTime/2);
             $("#m4c").fadeIn(fadeTime);},
         2*fadeTime);
         $("#submit").click(function () {
@@ -152,18 +154,18 @@ $(function() {  // on page load
             let keepA = maxUser - giveA;
             let giveB = 0;
             let keepB = 3*giveA;
+            $("#m4c").fadeOut(fadeTime/2);
+            $("#m4d").fadeIn(fadeTime);
             $("#submit").prop('disabled', true);
             $("#submit").css('visibility', 'hidden');
             $("#sendA").css('visibility', 'hidden');
             $("#sendB").css('visibility', 'hidden');
-            $("#loading").show();
-            $("#transfer").hide();
+            $("#loading").fadeIn(fadeTime);
+            $("#transfer").fadeOut(fadeTime/2);
             animateAToB(0, "m4", giveA, keepA);
-            $("#m4c").hide();
-            $("#m4d").show();
             setTimeout(function() {
-                $("#loading").hide();
-                $("#transfer").show();
+                $("#loading").fadeOut(fadeTime/2);
+                $("#transfer").fadeIn(fadeTime);
                 $("#sendA").css('visibility', 'visible');
                 $("#sendB").css('visibility', 'visible');
                 $("#sendA").text(giveB);
@@ -174,14 +176,14 @@ $(function() {  // on page load
                 $("#form").css('visibility', 'visible');            
                 $("#slider").css('visibility', 'visible');      
                 $("#submit").css('visibility', 'hidden');
-                }, 2*fadeTime);
+                }, 2*fadeTime); 
             animateBToA(2*fadeTime, "m4", keepA, giveB, keepB);
             animateTotal(3*fadeTime, "m4", keepA, giveB, keepB);
-            setTimeout(function() {$("#m4d").hide();}, 3*fadeTime);
-            setTimeout(function() {$("#m4e").show();}, 3*fadeTime);
-            setTimeout(function() {$("#m4e").hide();}, 4*fadeTime);
-            setTimeout(function() {$("#m4f").show();}, 4*fadeTime);
-            setTimeout(function() {$("#transfer").hide();}, 5*fadeTime);
+            setTimeout(function() {$("#m4d").fadeOut(fadeTime/2);}, 2*fadeTime);
+            setTimeout(function() {$("#m4e").fadeIn(fadeTime);}, 2*fadeTime);
+            setTimeout(function() {$("#m4e").fadeOut(fadeTime/2);}, 4*fadeTime);
+            setTimeout(function() {$("#m4f").fadeIn(fadeTime);}, 4*fadeTime);
+            setTimeout(function() {$("#transfer").fadeOut(fadeTime/2);}, 4*fadeTime);
             enableNavigation(5*fadeTime, 4);
         });
 
@@ -198,9 +200,10 @@ $(function() {  // on page load
             let cap = $("#aNow"+addTo).clone();
             cap.attr("id", "cap");
             cap.appendTo("#"+addTo);
-            cap.css("margin-left", "0%");
+            cap.css("position", "relative");
+            cap.css("left", "-=5%");
             cap.animate({
-                'margin-left' : "+=5%",
+                left : "+=5%",
                 'opacity': 0,
                 }, fadeTime,
                 function() {cap.remove();});
@@ -211,12 +214,15 @@ $(function() {  // on page load
             $("#aNow"+addTo).text("$"+keepA);
             $("#bNow"+addTo).text("$"+giveA);
             let toB = $("#aNow"+addTo).clone();
+            let width = $("#bNow"+addTo).width();
             toB.attr("id", "toB");
             toB.text("$"+giveA);
-            toB.css("margin-left", "10%");
+            toB.css("position", "relative");
+            // toB.width("5%");
             toB.appendTo("#"+addTo);
             toB.animate({
-                'margin-left': "+=80%",
+                left: "+="+width,
+                width: "-="+width, // prevent empty space on right
                 'color': $("#bNow"+addTo).css('color'),
                 'opacity': 0,
                 }, fadeTime,
@@ -226,25 +232,30 @@ $(function() {  // on page load
     function animateAToB(timeout, addTo, giveA, keepA) {
         setTimeout(function(){
             let toB = $("#aNow"+addTo).clone();
+            let width = $("#bNow"+addTo).width();
+            let matchB = $("#bNow"+addTo).clone();
             $("#aNow"+addTo).text("$"+keepA);
+            $("#bNow"+addTo).text("$"+3*giveA);
             toB.text("$"+giveA);
             toB.attr("id", "toB2");
-            toB.css("margin-left", "15%");
+            toB.css("position", "relative");
+            // toB.width("5%");
             toB.appendTo("#"+addTo);
             toB.animate({
-                'margin-left': "+=65%",
+                left: "+="+width,
+                width: "-="+width, // prevent empty space on right
                 'color': $("#bNow"+addTo).css('color'),
                 'opacity': 0,
                 }, fadeTime,
-                function() {toB.remove();});
-            $("#bNow"+addTo).text("$"+3*giveA);
-            let matchB = $("#bNow"+addTo).clone();
+                function() {toB.remove()});
             matchB.attr("id", "matchB");
+            matchB.css("position", "relative");
+            matchB.css("left", "+=5%");
+            // matchB.width("5%");
             matchB.text("$"+2*giveA);
-            matchB.css("margin-left", "100%");
             matchB.appendTo("#"+addTo);
             matchB.animate({
-                'margin-left': "-=5%",
+                left: "-=5%",
                 'opacity': 0,
                 }, fadeTime,
                 function() {matchB.remove();});
@@ -253,23 +264,21 @@ $(function() {  // on page load
     }
     function animateBToA(timeout, addTo, keepA, giveB, keepB) {
         setTimeout(function(){
+            let width = $("#bNow"+addTo).width();
             $("#aNow"+addTo).text("$"+(keepA+giveB));
             let toA = $("#bNow"+addTo).clone();
-            toA.attr("id", "toA2");
             $("#bNow"+addTo).text("$"+keepB);
+            toA.attr("id", "toA2");
             toA.text("$"+giveB);
-            toA.css("width", "10%");
-            toA.css("margin-left", "75%");
+            toA.css("position", "relative");
             toA.appendTo("#"+addTo);
             toA.animate({
-                'margin-left': "-=65%",
+                left: "-="+width,
+                // width: "-="+width, // prevent empty space on left
                 'color': $("#aNow"+addTo).css('color'),
                 'opacity': 0,
                 }, fadeTime,
-                function() {
-                    toA.remove();
-                    // animateTotal();
-                    });
+                function() {toA.remove();});
         }, timeout);
     }
     function animateTotal(timeout, addTo, keepA, giveB, keepB){
@@ -277,22 +286,28 @@ $(function() {  // on page load
             $("#aTotal"+addTo).text("$"+(keepA+giveB));
             $("#bTotal"+addTo).text("$"+keepB);
             let upA = $("#aNow"+addTo).clone();
-            upA.attr("id", "upA");
-            upA.text("$"+(keepA+giveB));
+            let upB = $("#bNow"+addTo).clone();
+            let mTotal = parseInt($("#aTotal"+addTo).css('marginTop'));
+            let mNow = parseInt($("#aNow"+addTo).css('marginTop'));
+            let dY = mNow - mTotal;
+            console.log(dY)
             $("#aNow"+addTo).text("$0");
+            $("#bNow"+addTo).text("$0");
+            upA.attr("id", "upA");
+            upA.css("position", "relative");
+            upA.text("$"+(keepA+giveB));
             upA.appendTo("#"+addTo);
             upA.animate({
-                'margin-top': "-=5%",
+                top: "-="+dY,
                 'opacity': 0,
                 }, fadeTime,
                 function() {upA.remove();});        
-            let upB = $("#bNow"+addTo).clone();
             upB.attr("id", "upB");
+            upB.css("position", "relative");
             upB.text("$"+keepB);
-            $("#bNow"+addTo).text("$0");
             upB.appendTo("#"+addTo);
             upB.animate({
-                'margin-top': "-=5%",
+                top: "-="+dY,
                 'opacity': 0,
                 }, fadeTime,
                 function() {upB.remove();});

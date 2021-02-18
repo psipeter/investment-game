@@ -45,7 +45,7 @@ h1, h3 {
 /*Main Content*/
 #m1 {
 	margin-top: 2%;
-	grid-template-rows: 110px 110px 130px;
+	grid-template-rows: 100px 100px 130px;
 }
 #m1c1 {
 	margin-top: 2%;
@@ -63,7 +63,7 @@ h1, h3 {
 	height: 80%;
 	width: 20%;
 }
-#m2, #m3 {
+#m2, #m3, #m4 {
 	width: 100%;
 	grid-template-rows: 80px 250px 80px;	
 	grid-template-columns: 1fr 1fr 1fr;	
@@ -220,6 +220,7 @@ h1, h3 {
 #transfer {
 	margin-top: 11%;
 	width: 60%;
+	height: 80%;
 	margin-left: 20%;
 	grid-row: 2;
 	grid-column: 1/4;
